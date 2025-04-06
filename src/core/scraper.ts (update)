@@ -1,0 +1,276 @@
+import * as cheerio from 'cheerio';
+import { PrismaClient } from '@prisma/client';
+import logger from '../utils/logger';
+import { CacheService } from '../services/cacheService';
+import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor';
+import { requestPool } from '../utils/requestPool';
+import { httpClient, createHttpClient, HttpClientConfig } from '../utils/httpClient';
+import { PerformanceMonitor } from '../utils/performance';
+import { BrowserService } from '../services/browserService';
+import { proxyManager } from '../services/proxyManager';
+import { applyContentFilters, FilterOptions } from '../utils/contentFilters';
+import crypto from 'crypto';
+
+// Initialize Prisma client
+const prisma = new PrismaClient();
+
+/**
+ * Represents the structure of scraped data
+ */
+export interface ScrapedData {
+  url: string;
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  timestamp: string;
+}
+
+/**
+ * Scraper options
+ */
+export interface ScraperOptions {
+  useCache?: boolean;
+  cacheTtl?: number;
+  timeout?: number;
+  retries?: number;
+  useBrowser?: boolean;
+  browserOptions?: {
+    waitForSelector?: string;
+    waitTime?: number;
+    scrollToBottom?: boolean;
+    evaluateScript?: string;
+  };
+  useProxy?: boolean;
+  filterOptions?: FilterOptions;
+}
+
+/**
+ * Generate a cache key for a URL
+ * 
+ * @param url - The URL to generate a cache key for
+ * @returns Cache key
+ */
+function generateCacheKey(url: string): string {
+  return `scrape_${crypto.createHash('md5').update(url).digest('hex')}`;
+}
+
+/**
+ * Scrapes the content from a given URL
+ * 
+ * @param url - The URL to scrape
+ * @param options - Scraping options
+ * @returns Promise resolving to the scraped data
+ */
+export async function scrapeUrl(url: string, options: ScraperOptions = {}): Promise<ScrapedData> {
+  return PerformanceMonitor.measure('scrape_total', async () => {
+    // Default options
+    const { 
+      useCache = true, 
+      cacheTtl, 
+      timeout = 10000,
+      retries = 3,
+      useBrowser = false,
+      browserOptions = {},
+      useProxy = false,
+      filterOptions
+    } = options;
+    
+    // Generate cache key
+    const cacheKey = generateCacheKey(url);
+    
+    // Check cache if enabled
+    if (useCache) {
+      const cachedData = CacheService.get<ScrapedData>(cacheKey);
+      if (cachedData) {
+        logger.info({ message: 'Serving from cache', url });
+        return cachedData;
+      }
+    }
+    
+    // Execute the scraping task within the request pool
+    return requestPool.add(async () => {
+      try {
+        logger.info({ message: 'Starting scrape', url });
+        
+        let html: string;
+        
+        // Use browser for JavaScript-heavy sites if requested
+        if (useBrowser) {
+          html = await PerformanceMonitor.measure(
+            'scrape_browser',
+            () => BrowserService.scrapeWithBrowser(url, browserOptions),
+            { url }
+          );
+        } else {
+          // Create HTTP client with appropriate options
+          let client;
+          if (useProxy) {
+            client = proxyManager.createProxiedClient({
+              timeout,
+              retries
+            });
+          } else {
+            client = (timeout !== 10000 || retries !== 3) 
+              ? createHttpClient({ timeout, retries })
+              : httpClient;
+          }
+          
+          // Fetch the HTML content
+          const response = await PerformanceMonitor.measure(
+            'scrape_fetch', 
+            () => client.get(url),
+            { url }
+          );
+          
+          html = response.data;
+        }
+        
+        // Parse HTML
+        const $ = await PerformanceMonitor.measure(
+          'scrape_parse',
+          () => cheerio.load(html),
+          { url }
+        );
+        
+        // Extract title
+        const title = $('title').text().trim() || 'No title found';
+        
+        // Apply content filters or extract content normally
+        let extractedContent = '';
+        let extractedMetadata = {};
+        
+        if (filterOptions) {
+          const filteredContent = await PerformanceMonitor.measure(
+            'scrape_filter_content',
+            () => applyContentFilters(html, filterOptions),
+            { url }
+          );
+          
+          extractedContent = filteredContent.text;
+          extractedMetadata = {
+            ...filteredContent.metadata,
+            links: filteredContent.links,
+            images: filteredContent.images,
+            headings: filteredContent.headings,
+            tables: filteredContent.tables,
+            keywordMatches: filteredContent.keywordMatches,
+          };
+        } else {
+          // Use standard extraction
+          extractedContent = await PerformanceMonitor.measure(
+            'scrape_extract_content',
+            () => extractMainContent(html),
+            { url }
+          );
+          
+          extractedMetadata = await PerformanceMonitor.measure(
+            'scrape_extract_metadata',
+            () => extractMetadata($),
+            { url }
+          );
+          
+          const links = await PerformanceMonitor.measure(
+            'scrape_extract_links',
+            () => extractLinks($),
+            { url }
+          );
+          
+          extractedMetadata = {
+            ...extractedMetadata,
+            links,
+          };
+        }
+        
+        // Create timestamp
+        const timestamp = new Date().toISOString();
+        
+        // Construct the result
+        const scrapedData: ScrapedData = {
+          url,
+          title,
+          content: extractedContent,
+          metadata: extractedMetadata,
+          timestamp,
+        };
+        
+        // Store in cache if enabled
+        if (useCache) {
+          await PerformanceMonitor.measure(
+            'scrape_cache',
+            () => CacheService.set(cacheKey, scrapedData, cacheTtl),
+            { url }
+          );
+        }
+        
+        // Store in database
+        await PerformanceMonitor.measure(
+          'scrape_db',
+          () => storeScrapedData(scrapedData),
+          { url }
+        );
+        
+        // Report proxy success if used
+        if (useProxy) {
+          // Note: In a real implementation, we would extract the proxy info
+          // from the client and report success to the proxy manager
+        }
+        
+        return scrapedData;
+      } catch (error) {
+        logger.error({ 
+          message: 'Scrape failed',
+          url,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        // Report proxy failure if used
+        if (useProxy) {
+          // Note: In a real implementation, we would extract the proxy info
+          // from the client and report failure to the proxy manager
+        }
+        
+        if (error instanceof Error) {
+          throw new Error(`Failed to scrape URL (${url}): ${error.message}`);
+        }
+        throw new Error(`Failed to scrape URL (${url}): Unknown error`);
+      }
+    });
+  }, { url });
+}
+
+/**
+ * Stores the scraped data in the database
+ * 
+ * @param data - The scraped data to store
+ */
+async function storeScrapedData(data: ScrapedData): Promise<void> {
+  try {
+    await prisma.scrapedPage.upsert({
+      where: { url: data.url },
+      update: {
+        title: data.title,
+        content: data.content,
+        metadata: JSON.stringify(data.metadata),
+        updatedAt: new Date(),
+      },
+      create: {
+        url: data.url,
+        title: data.title,
+        content: data.content,
+        metadata: JSON.stringify(data.metadata),
+      },
+    });
+    
+    logger.info({
+      message: 'Saved to database',
+      url: data.url,
+    });
+  } catch (error) {
+    logger.error({
+      message: 'Database storage error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+}
