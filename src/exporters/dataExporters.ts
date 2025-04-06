@@ -1,8 +1,17 @@
-import { Exporter } from './exporterTypes';
-import { ScrapedData } from '../core/scraper';
-import logger from '../utils/logger';
+import { Exporter } from './exporterTypes.js';
+import { ScrapedData } from '../core/scraper.js';
+import logger from '../utils/logger.js';
 import { createObjectCsvStringifier } from 'csv-writer';
 import xml2js from 'xml2js';
+
+// Interface for flattened CSV data with index signature
+interface FlatCsvData {
+  url: string;
+  title: string;
+  content: string;
+  timestamp: string;
+  [key: string]: any; // Allow arbitrary string keys
+}
 
 /**
  * JSON exporter
@@ -25,11 +34,11 @@ export const csvExporter: Exporter = {
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as CSV');
     
-    // Flatten the data structure
-    const flatData = {
+    // Flatten the data structure using the interface
+    const flatData: FlatCsvData = {
       url: data.url,
       title: data.title,
-      content: data.content.replace(/\n/g, ' ').replace(/"/g, '""'),
+      content: data.content.replace(/\n/g, ' ').replace(/"/g, '""'), // Keep existing replacements
       timestamp: data.timestamp
     };
     
@@ -64,23 +73,23 @@ export const xmlExporter: Exporter = {
     logger.debug('Exporting data as XML');
     
     // Create XML structure
-    const xmlObj = {
+    const xmlObj: any = { // Use any for easier dynamic property assignment
       scrapedData: {
         url: data.url,
         title: data.title,
         content: { _cdata: data.content },
         timestamp: data.timestamp,
-        metadata: {}
+        metadata: {} // Initialize metadata object
       }
     };
     
-    // Add metadata
-    if (typeof data.metadata === 'object') {
+    // Add metadata (casting metadata to any is implicitly handled by xmlObj being any)
+    if (typeof data.metadata === 'object' && data.metadata !== null) {
       Object.entries(data.metadata).forEach(([key, value]) => {
         if (typeof value === 'string') {
           xmlObj.scrapedData.metadata[key] = { _cdata: value };
         } else if (value !== null && value !== undefined) {
-          xmlObj.scrapedData.metadata[key] = { _cdata: JSON.stringify(value) };
+          xmlObj.scrapedData.metadata[key] = { _cdata: JSON.stringify(value) }; // Keep existing logic
         }
       });
     }

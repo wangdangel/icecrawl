@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { UserService } from '../services/userService';
-import { generateToken, authenticate, requireAdmin } from '../middleware/authMiddleware';
-import logger from '../utils/logger';
+import { PrismaClient } from '@prisma/client'; // Import PrismaClient
+import { UserService } from '../services/userService.js';
+import { generateToken, authenticate, requireAdmin } from '../middleware/authMiddleware.js';
+import logger from '../utils/logger.js';
 
+const prisma = new PrismaClient(); // Instantiate PrismaClient
 const router = Router();
 
 // Validation schemas

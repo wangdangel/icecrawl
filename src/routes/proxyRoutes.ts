@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { proxyManager } from '../services/proxyManager';
-import logger from '../utils/logger';
-import { authenticate, requireAdmin } from '../middleware/authMiddleware';
+import { proxyManager } from '../services/proxyManager.js';
+import logger from '../utils/logger.js';
+import { authenticate, requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -118,7 +118,7 @@ router.post('/', async (req: Request, res: Response) => {
       host,
       port,
       auth: username && password ? true : false,
-      userId: req.user.id
+      userId: req.user?.id // Add optional chaining
     });
     
     res.status(201).json({
@@ -179,7 +179,7 @@ router.post('/:host/:port/reactivate', (req: Request, res: Response) => {
     message: 'Proxy reactivation requested',
     host,
     port,
-    userId: req.user.id
+    userId: req.user?.id // Add optional chaining
   });
   
   res.status(200).json({

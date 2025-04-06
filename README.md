@@ -1,4 +1,4 @@
-# Web Scraper Dual-Interface
+# Icecrawl
 
 A powerful, dual-interface web scraping application that provides both an HTTP API and a Command-Line Interface (CLI), complete with a web dashboard.
 
@@ -23,8 +23,8 @@ A powerful, dual-interface web scraping application that provides both an HTTP A
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/webscraper-dual-interface.git
-cd webscraper-dual-interface
+git clone https://github.com/wangdangel/icecrawl.git
+cd icecrawl
 
 # Install dependencies
 npm install
@@ -69,7 +69,7 @@ npm run cli --help
 ## Project Structure
 
 ```
-webscraper-dual-interface/
+icecrawl/
 ├── .github/              # GitHub configuration (workflows, templates)
 ├── docs/                 # Documentation
 │   ├── adr/              # Architecture Decision Records

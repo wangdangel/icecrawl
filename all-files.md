@@ -12,7 +12,7 @@ This document contains all the files for the web scraper project. You can extrac
 // package.json
 ```
 {
-  "name": "webscraper-dual-interface",
+  "name": "icecrawl",
   "version": "0.1.0",
   "description": "Dual-interface web scraping application with HTTP API and CLI",
   "main": "dist/index.js",
@@ -2196,10 +2196,10 @@ The Web Scraper provides a powerful command-line interface (CLI) for scraping we
 
 ```bash
 # Install globally
-npm install -g webscraper-dual-interface
+npm install -g icecrawl
 
 # Or use directly with npx
-npx webscraper-dual-interface
+npx icecrawl
 ```
 
 ## Basic Usage
@@ -2588,8 +2588,8 @@ A dual-interface web scraping application that provides both an HTTP API and a C
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/webscraper-dual-interface.git
-cd webscraper-dual-interface
+git clone https://github.com/wangdangel/icecrawl.git
+cd icecrawl
 
 # Install dependencies
 npm install
@@ -2676,7 +2676,7 @@ This project uses Prisma with SQLite by default. To use a different database:
 ## Project Structure
 
 ```
-webscraper-dual-interface/
+icecrawl/
 ├── docs/               # Documentation
 │   ├── adr/            # Architecture Decision Records
 │   ├── cli-usage.md    # CLI usage guide

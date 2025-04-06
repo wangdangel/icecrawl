@@ -1,4 +1,4 @@
-import logger from './logger';
+import logger from './logger.js';
 
 /**
  * Request Pool Manager for limiting concurrent requests
@@ -38,7 +38,8 @@ export class RequestPoolManager {
           this.currentConcurrent++;
           const result = await task();
           resolve(result);
-          return result;
+          // No need to return result here; the outer promise handles it.
+          // This makes wrappedTask return Promise<void> implicitly.
         } catch (error) {
           reject(error);
           throw error;

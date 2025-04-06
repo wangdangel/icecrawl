@@ -1,5 +1,5 @@
-import { createHttpClient, HttpClientConfig } from '../utils/httpClient';
-import logger from '../utils/logger';
+import { createHttpClient } from '../utils/httpClient.js'; // Remove HttpClientConfig
+import logger from '../utils/logger.js';
 
 /**
  * Proxy configuration
@@ -76,10 +76,10 @@ export class ProxyManager {
   /**
    * Create an HTTP client with a proxy
    * 
-   * @param config - Additional HTTP client configuration
+   * @param config - Additional HTTP client configuration (type inferred)
    * @returns HTTP client with proxy
    */
-  createProxiedClient(config: Omit<HttpClientConfig, 'proxy'> = {}): ReturnType<typeof createHttpClient> {
+  createProxiedClient(config: any = {}): ReturnType<typeof createHttpClient> { // Use any for config type for simplicity
     const proxy = this.getProxy();
     
     if (!proxy) {
@@ -87,13 +87,12 @@ export class ProxyManager {
       return createHttpClient(config);
     }
     
+    // Pass proxy details directly, not nested under 'proxy'
     return createHttpClient({
       ...config,
-      proxy: {
-        host: proxy.host,
-        port: proxy.port,
-        auth: proxy.auth
-      }
+      proxyHost: proxy.host,
+      proxyPort: proxy.port,
+      proxyAuth: proxy.auth
     });
   }
   

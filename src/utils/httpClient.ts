@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import logger from './logger';
+import logger from './logger.js';
 
 /**
  * Creates a configured HTTP client with retry and timeout handling
@@ -33,9 +33,9 @@ export function createHttpClient(config: {
   axiosRetry(client, {
     retries,
     retryDelay: (retryCount) => retryCount * 1000, // exponential backoff
-    retryCondition: (error) => {
+    retryCondition: (error): boolean => { // Explicitly type return as boolean
       // Retry on network errors, timeouts, 429 (too many requests), and 5xx responses
-      return (
+      return !!( // Use double negation to ensure boolean return type
         axiosRetry.isNetworkError(error) ||
         error.code === 'ECONNABORTED' || // Timeout
         error.response?.status === 429 ||

@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
-import logger from '../utils/logger';
-import { CacheService } from '../services/cacheService';
-import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor';
-import { requestPool } from '../utils/requestPool';
-import { httpClient, createHttpClient } from '../utils/httpClient';
-import { PerformanceMonitor } from '../utils/performance';
+import logger from '../utils/logger.js';
+import { CacheService } from '../services/cacheService.js';
+import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor.js';
+import { requestPool } from '../utils/requestPool.js';
+import { httpClient, createHttpClient } from '../utils/httpClient.js';
+import { PerformanceMonitor } from '../utils/performance.js';
 import crypto from 'crypto';
 
 // Initialize Prisma client
@@ -89,9 +89,10 @@ export async function scrapeUrl(
         const html = response.data;
         
         // Parse HTML with performance monitoring
-        const $ = await PerformanceMonitor.measure(
+        // Wrap synchronous cheerio.load in Promise.resolve
+        const $ = await PerformanceMonitor.measure<cheerio.CheerioAPI>( // Add explicit type
           'scrape_parse',
-          () => cheerio.load(html),
+          async () => cheerio.load(html), // Use async
           { url }
         );
         
@@ -99,23 +100,26 @@ export async function scrapeUrl(
         const title = $('title').text().trim() || 'No title found';
         
         // Extract main content using optimized extractor with performance monitoring
-        const content = await PerformanceMonitor.measure(
+        // Wrap synchronous extractMainContent in Promise.resolve
+        const content = await PerformanceMonitor.measure<string>( // Add explicit type
           'scrape_extract_content',
-          () => extractMainContent(html),
+          async () => extractMainContent(html), // Use async
           { url }
         );
         
         // Extract metadata with performance monitoring
-        const metadata = await PerformanceMonitor.measure(
+        // Wrap synchronous extractMetadata in Promise.resolve
+        const metadata = await PerformanceMonitor.measure<Record<string, unknown>>( // Add explicit type
           'scrape_extract_metadata',
-          () => extractMetadata($),
+          async () => extractMetadata($), // Use async
           { url }
         );
         
         // Extract links with performance monitoring
-        const links = await PerformanceMonitor.measure(
+        // Wrap synchronous extractLinks in Promise.resolve
+        const links = await PerformanceMonitor.measure<{ href: string; text: string; }[]>( // Add explicit type
           'scrape_extract_links',
-          () => extractLinks($),
+          async () => extractLinks($), // Use async
           { url }
         );
         
@@ -138,12 +142,13 @@ export async function scrapeUrl(
         if (useCache) {
           await PerformanceMonitor.measure(
             'scrape_cache',
-            () => CacheService.set(cacheKey, scrapedData, cacheTtl),
+            // Wrap synchronous CacheService.set and add missing commas
+            async () => CacheService.set(cacheKey, scrapedData, cacheTtl), // Use async and fix commas
             { url }
           );
         }
         
-        // Store in database with performance monitoring
+        // Store in database with performance monitoring (storeScrapedData is already async)
         await PerformanceMonitor.measure(
           'scrape_db',
           () => storeScrapedData(scrapedData),

@@ -1,5 +1,5 @@
 import NodeCache from 'node-cache';
-import logger from '../utils/logger';
+import logger from '../utils/logger.js';
 
 // Configure cache with default TTL of 1 hour and check period of 10 minutes
 const cache = new NodeCache({
@@ -46,7 +46,8 @@ export class CacheService {
    */
   static set<T>(key: string, value: T, ttl?: number): boolean {
     try {
-      const success = cache.set(key, value, ttl);
+      // Only pass ttl if it's defined
+      const success = ttl !== undefined ? cache.set(key, value, ttl) : cache.set(key, value);
       logger.debug({
         message: 'Cache set',
         key,

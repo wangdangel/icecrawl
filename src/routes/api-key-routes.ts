@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { ApiKeyService } from '../services/apiKeyService';
-import { authenticate } from '../middleware/authMiddleware';
-import logger from '../utils/logger';
+import { ApiKeyService } from '../services/api-key-service.js';
+import { authenticate } from '../middleware/authMiddleware.js';
+import logger from '../utils/logger.js';
 
 const router = Router();
 

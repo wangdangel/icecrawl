@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
-import { scrapeUrl } from './core/scraper';
-import { getInputFromStdin } from './utils/stdinHelper';
-import { formatScrapedData, formatError, formatLoading } from './utils/cliFormatter';
+import { scrapeUrl } from './core/scraper.js';
+import { getInputFromStdin } from './utils/stdinHelper.js';
+import { formatScrapedData, formatError, formatLoading } from './utils/cliFormatter.js';
 
 // CLI Configuration
 program
-  .name('webscraper')
+  .name('icecrawl')
   .description('CLI tool for web scraping with stdin/stdout interface')
   .version('0.1.0');
 

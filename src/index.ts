@@ -5,20 +5,20 @@ import morgan from 'morgan';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import session from 'express-session';
-import { defaultRateLimiter } from './middleware/rateLimiter';
-import { requestLogger } from './middleware/requestLogger';
-import { authenticate } from './middleware/authMiddleware';
-import logger from './utils/logger';
-import { specs } from './utils/swagger';
+import { defaultRateLimiter } from './middleware/rateLimiter.js';
+import { requestLogger } from './middleware/requestLogger.js';
+import { authenticate } from './middleware/authMiddleware.js';
+import logger from './utils/logger.js';
+import { specs } from './utils/swagger.js';
 
 // Route imports
-import authRoutes from './routes/authRoutes';
-import userRoutes from './routes/userRoutes';
-import scrapeRoutes from './routes/scrapeRoutes';
-import exportRoutes from './routes/exportRoutes';
-import transformRoutes from './routes/transformRoutes';
-import dashboardRoutes from './routes/dashboardRoutes';
-import healthRoutes from './routes/healthRoutes';
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/user-routes.js';
+import scrapeRoutes from './routes/scrapeRoutes.js';
+import exportRoutes from './routes/exportRoutes.js';
+import transformRoutes from './routes/transformRoutes.js';
+import dashboardRoutes from './routes/dashboard-routes.js';
+import healthRoutes from './routes/healthRoutes.js';
 
 // Initialize express app
 const app = express();

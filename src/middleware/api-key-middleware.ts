@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiKeyService } from '../services/apiKeyService';
-import logger from '../utils/logger';
+import { ApiKeyService } from '../services/api-key-service.js';
+import logger from '../utils/logger.js';
 
 /**
  * Middleware to authenticate requests using API key
@@ -10,10 +10,11 @@ export function authenticateApiKey(req: Request, res: Response, next: NextFuncti
     // Get API key from header
     const apiKey = req.headers['x-api-key'] as string;
     if (!apiKey) {
-      return res.status(401).json({
+      res.status(401).json({
         status: 'error',
         message: 'API key is required',
       });
+      return; // Exit after sending response
     }
     
     // Validate API key and add to request
@@ -76,10 +77,11 @@ export function requireApiKeyPermission(permission: string) {
     
     // Check permission
     if (!ApiKeyService.hasPermission(req.apiKey, permission)) {
-      return res.status(403).json({
+      res.status(403).json({
         status: 'error',
         message: 'API key does not have required permission',
       });
+      return; // Exit after sending response
     }
     
     next();
@@ -94,10 +96,11 @@ async function validateAndProcessApiKey(apiKey: string, req: Request, res: Respo
   const validApiKey = await ApiKeyService.validateApiKey(apiKey);
   
   if (!validApiKey) {
-    return res.status(401).json({
+    res.status(401).json({
       status: 'error',
       message: 'Invalid or inactive API key',
     });
+    return; // Exit after sending response
   }
   
   // Add API key to request

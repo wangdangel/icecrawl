@@ -10,8 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
  */
 export interface User {
   id: string;
-  username: string;
-  role: 'admin' | 'user';
+  username?: string; // Make username optional for API key auth
+  role: 'admin' | 'user' | 'api'; // Add 'api' role
 }
 
 // Add user property to Express Request
@@ -82,10 +82,11 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
  */
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({
+    res.status(403).json({
       status: 'error',
       message: 'Admin access required',
     });
+    return; // Exit after sending response
   }
   
   next();
