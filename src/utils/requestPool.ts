@@ -1,4 +1,4 @@
-import logger from './logger.js';
+import logger from './logger';
 
 /**
  * Request Pool Manager for limiting concurrent requests

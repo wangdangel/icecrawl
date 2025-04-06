@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config(); // Load environment variables from .env file
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,24 +8,24 @@ import morgan from 'morgan';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import session from 'express-session';
-import { defaultRateLimiter } from './middleware/rateLimiter.js';
-import { requestLogger } from './middleware/requestLogger.js';
-import { authenticate } from './middleware/authMiddleware.js';
-import logger from './utils/logger.js';
-import { specs } from './utils/swagger.js';
+import { defaultRateLimiter } from './middleware/rateLimiter';
+import { requestLogger } from './middleware/requestLogger';
+import { authenticate } from './middleware/authMiddleware';
+import logger from './utils/logger';
+import { specs } from './utils/swagger';
 
 // Route imports
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/user-routes.js';
-import scrapeRoutes from './routes/scrapeRoutes.js';
-import exportRoutes from './routes/exportRoutes.js';
-import transformRoutes from './routes/transformRoutes.js';
-import dashboardRoutes from './routes/dashboard-routes.js';
-import healthRoutes from './routes/healthRoutes.js';
+import { router as authRoutes } from './routes/authRoutes'; // Update to named import
+import userRoutes from './routes/user-routes';
+import scrapeRoutes from './routes/scrapeRoutes';
+import exportRoutes from './routes/exportRoutes';
+import transformRoutes from './routes/transformRoutes';
+import dashboardRoutes from './routes/dashboard-routes';
+import healthRoutes from './routes/healthRoutes';
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 6969;
+const PORT = process.env.PORT || 6970; // Changed default port to 6970
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Session configuration
@@ -34,7 +37,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'cdnjs.cloudflare.com'], // Allow scripts from CDNs for dashboard
+      scriptSrc: ["'self'", 'cdnjs.cloudflare.com', "'unsafe-inline'"], // Allow inline scripts for login page
       styleSrc: ["'self'", 'cdnjs.cloudflare.com', "'unsafe-inline'"], // Allow styles from CDNs
       fontSrc: ["'self'", 'cdnjs.cloudflare.com'], // Allow fonts from CDNs
       imgSrc: ["'self'", 'data:'], // Allow inline data images
@@ -46,7 +49,8 @@ app.use(morgan('dev'));
 app.use(requestLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(defaultRateLimiter);
+// REMOVED: Global rate limiter
+// app.use(defaultRateLimiter);
 
 // Session middleware
 app.use(session({
@@ -60,8 +64,21 @@ app.use(session({
   }
 }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static files from the 'public' directory (using path.resolve), explicitly setting index
+app.use(express.static(path.resolve('public'), { index: 'index.html' }));
+
+// REMOVED: Explicit redirect for /dashboard
+/*
+app.get('/dashboard', (req: Request, res: Response) => {
+  res.redirect('/dashboard/');
+});
+*/
+
+// REMOVED: General static file serving (Re-added above)
+// app.use(express.static(path.join(__dirname, '../public')));
+
+// REMOVED: Specific static file serving for dashboard
+// app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard')));
 
 // Error handling middleware
 const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction) => {
@@ -82,30 +99,41 @@ const errorHandler = (err: Error, req: Request, res: Response, _next: NextFuncti
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// API Routes
+// Serve login page directly
+app.get('/login', (req: Request, res: Response) => {
+  res.sendFile(path.resolve('public/login.html'));
+});
+
+// API Routes - Apply rate limiter here
+app.use('/api', defaultRateLimiter); // Apply rate limiter only to /api/* routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/scrape', authenticate, scrapeRoutes);
 app.use('/api/transform', authenticate, transformRoutes);
 app.use('/api/export', authenticate, exportRoutes);
-app.use('/dashboard', dashboardRoutes); // Dashboard routes (includes UI and API)
+// Mount dashboard API routes under /api/dashboard
+app.use('/api/dashboard', dashboardRoutes);
+// REMOVED: Static files for dashboard (Handled by general static middleware now)
+// app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard'), { index: 'index.html' }));
 app.use('/health', healthRoutes);
 
-// Default route for SPA support
+// Default route - redirect root to /dashboard/ (with trailing slash)
 app.get('/', (req: Request, res: Response) => {
-  res.redirect('/dashboard');
+  res.redirect('/dashboard/'); // Add trailing slash
 });
 
-// Catch-all route for SPA
+// REMOVED: Catch-all route for SPA - Let unmatched routes 404 naturally
+/*
 app.get('*', (req: Request, res: Response) => {
   // Check if request is for API
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ status: 'error', message: 'API endpoint not found' });
   }
-  
+
   // For non-API routes, redirect to dashboard
   res.redirect('/dashboard');
 });
+*/
 
 // Apply error handler
 app.use(errorHandler);

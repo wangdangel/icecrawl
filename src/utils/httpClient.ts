@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import logger from './logger.js';
+import logger from './logger';
 
 /**
  * Creates a configured HTTP client with retry and timeout handling

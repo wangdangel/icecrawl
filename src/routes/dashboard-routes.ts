@@ -4,15 +4,16 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
 import path from 'path';
-import fs from 'fs';
+// import fs from 'fs'; // No longer needed
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// Serve dashboard UI (index.html)
+// REMOVED: Serve dashboard UI (index.html) - This should be handled by express.static in index.ts
+/*
 router.get('/', (req: Request, res: Response) => {
   const indexPath = path.resolve(__dirname, '../../public/dashboard/index.html');
-  
+
   // Check if the file exists
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
@@ -20,6 +21,7 @@ router.get('/', (req: Request, res: Response) => {
     res.status(404).send('Dashboard UI not found. Run `npm run build:dashboard` to build the dashboard.');
   }
 });
+*/
 
 // API routes for dashboard data
 // ==============================

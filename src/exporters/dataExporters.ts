@@ -1,6 +1,6 @@
-import { Exporter } from './exporterTypes.js';
-import { ScrapedData } from '../core/scraper.js';
-import logger from '../utils/logger.js';
+import { Exporter } from './exporterTypes';
+import { ScrapedData } from '../core/scraper';
+import logger from '../utils/logger';
 import { createObjectCsvStringifier } from 'csv-writer';
 import xml2js from 'xml2js';
 

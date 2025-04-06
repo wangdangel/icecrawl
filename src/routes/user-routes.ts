@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { EnhancedUserService } from '../services/enhanced-user-service.js';
-import { authenticate, requireAdmin, generateToken } from '../middleware/authMiddleware.js';
-import logger from '../utils/logger.js';
+import { EnhancedUserService } from '../services/enhanced-user-service';
+import { authenticate, requireAdmin, generateToken } from '../middleware/authMiddleware';
+import logger from '../utils/logger';
 
 const router = Router();
 

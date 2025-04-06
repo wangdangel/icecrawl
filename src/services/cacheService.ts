@@ -1,5 +1,5 @@
 import NodeCache from 'node-cache';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
 
 // Configure cache with default TTL of 1 hour and check period of 10 minutes
 const cache = new NodeCache({

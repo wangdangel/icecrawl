@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
-import logger from '../utils/logger.js';
-import { CacheService } from '../services/cacheService.js';
-import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor.js';
-import { requestPool } from '../utils/requestPool.js';
-import { httpClient, createHttpClient } from '../utils/httpClient.js';
-import { PerformanceMonitor } from '../utils/performance.js';
+import logger from '../utils/logger';
+import { CacheService } from '../services/cacheService';
+import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor';
+import { requestPool } from '../utils/requestPool';
+import { httpClient, createHttpClient } from '../utils/httpClient';
+import { PerformanceMonitor } from '../utils/performance';
 import crypto from 'crypto';
 
 // Initialize Prisma client

@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
-import logger from '../utils/logger.js';
-import { CacheService } from './cacheService.js';
-import { sendEmail } from '../utils/email-utils.js';
+import logger from '../utils/logger';
+import { CacheService } from './cacheService';
+import { sendEmail } from '../utils/email-utils';
 
 const prisma = new PrismaClient();
 
