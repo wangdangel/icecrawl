@@ -1,0 +1,218 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (major, minor, patch)'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      force_version:
+        description: 'Force specific version (leave empty to auto-increment)'
+        required: false
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT || github.token }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          registry-url: https://registry.npmjs.org/
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Run tests
+        run: npm test
+        
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Determine version
+        id: versioning
+        run: |
+          if [ -n "${{ github.event.inputs.force_version }}" ]; then
+            NEXT_VERSION="${{ github.event.inputs.force_version }}"
+            echo "Using forced version: $NEXT_VERSION"
+          else
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            TYPE="${{ github.event.inputs.release_type }}"
+            
+            # Split the version
+            IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
+            
+            if [ "$TYPE" == "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$TYPE" == "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              PATCH=$((PATCH + 1))
+            fi
+            
+            NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "Auto-incremented version: $NEXT_VERSION"
+          fi
+          
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Update package version
+        run: npm version ${{ steps.versioning.outputs.version }} --no-git-tag-version
+      
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # No previous tag found - use all commits
+            COMMIT_LOG=$(git log --pretty=format:"* %s (%h)" --no-merges)
+          else
+            # Use commits since last tag
+            COMMIT_LOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"* %s (%h)" --no-merges)
+          fi
+          
+          # Categorize commits based on conventional commit prefixes
+          FEATURES=$(echo "$COMMIT_LOG" | grep -E '^\* feat' || echo "")
+          FIXES=$(echo "$COMMIT_LOG" | grep -E '^\* fix' || echo "")
+          CHORES=$(echo "$COMMIT_LOG" | grep -E '^\* chore|^\* refactor|^\* test|^\* style|^\* ci|^\* build' || echo "")
+          DOCS=$(echo "$COMMIT_LOG" | grep -E '^\* docs' || echo "")
+          OTHER=$(echo "$COMMIT_LOG" | grep -v -E '^\* feat|^\* fix|^\* chore|^\* refactor|^\* test|^\* style|^\* ci|^\* build|^\* docs' || echo "")
+          
+          # Create the release notes content
+          {
+            echo "## What's Changed"
+            
+            if [ -n "$FEATURES" ]; then
+              echo "### Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+            
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+            
+            if [ -n "$DOCS" ]; then
+              echo "### Documentation"
+              echo "$DOCS"
+              echo ""
+            fi
+            
+            if [ -n "$CHORES" ]; then
+              echo "### Maintenance"
+              echo "$CHORES"
+              echo ""
+            fi
+            
+            if [ -n "$OTHER" ]; then
+              echo "### Other Changes"
+              echo "$OTHER"
+              echo ""
+            fi
+            
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-INITIAL}...v${{ steps.versioning.outputs.version }}"
+          } > release_notes.md
+          
+          # Escape newlines for GitHub Actions output
+          NOTES=$(cat release_notes.md | awk '{printf "%s\\n", $0}')
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION=${{ steps.versioning.outputs.version }}
+          DATE=$(date +%Y-%m-%d)
+          
+          # Extract release notes without the last line (which is the compare URL)
+          RELEASE_CONTENT=$(grep -v "Full Changelog" release_notes.md)
+          
+          # Check if CHANGELOG.md exists and modify it accordingly
+          if [ -f CHANGELOG.md ]; then
+            # Insert new version under the "Unreleased" section
+            TEMP_FILE=$(mktemp)
+            awk -v version="## [$VERSION] - $DATE" -v content="$RELEASE_CONTENT" '
+            /## \[Unreleased\]/ {
+              print $0
+              print ""
+              print version
+              print content
+              next
+            }
+            {print}
+            ' CHANGELOG.md > "$TEMP_FILE"
+            mv "$TEMP_FILE" CHANGELOG.md
+          else
+            # Create new CHANGELOG.md if it doesn't exist
+            cat > CHANGELOG.md << EOF
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [$VERSION] - $DATE
+$RELEASE_CONTENT
+EOF
+          fi
+      
+      - name: Commit changes
+        id: commit
+        run: |
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: Release version ${{ steps.versioning.outputs.version }}"
+          git push
+      
+      - name: Create Git tag
+        run: |
+          git tag -a "v${{ steps.versioning.outputs.version }}" -m "Version ${{ steps.versioning.outputs.version }}"
+          git push --tags
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "v${{ steps.versioning.outputs.version }}"
+          tag_name: "v${{ steps.versioning.outputs.version }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          token: ${{ secrets.RELEASE_PAT || github.token }}
+          
+      - name: Publish to NPM
+        if: github.ref == 'refs/heads/main'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

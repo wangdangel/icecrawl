@@ -18,6 +18,93 @@ model ScrapedPage {
   metadata   String?  // JSON string of metadata
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  userId     String?  // Optional reference to the user who created it
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tags       Tag[]    @relation("PageToTag")
+
+  // Dashboard specific fields
+  isFavorite Boolean  @default(false)
+  category   String?
+  notes      String?
+  viewCount  Int      @default(0)
+  lastViewed DateTime?
 
   @@index([url])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model User {
+  id               String    @id @default(uuid())
+  username         String    @unique
+  password         String
+  role             String    @default("user") // Either "user" or "admin"
+  email            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastLogin        DateTime?
+  isActive         Boolean   @default(true)
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  scrapedPages     ScrapedPage[]
+}
+
+model Tag {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  color       String?       // Color code for UI display
+  createdAt   DateTime      @default(now())
+  scrapedPages ScrapedPage[] @relation("PageToTag")
+
+  @@index([name])
+}
+
+model ScrapeJob {
+  id          String    @id @default(uuid())
+  url         String
+  status      String    // "pending", "processing", "completed", "failed"
+  startTime   DateTime?
+  endTime     DateTime?
+  error       String?
+  resultId    String?   // Reference to ScrapedPage if successful
+  userId      String?   // Optional reference to the user who created it
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  scheduledFor DateTime?
+  isRecurring Boolean   @default(false)
+  schedule    String?   // Cron expression for recurring jobs
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Dashboard {
+  id          String    @id @default(uuid())
+  name        String
+  layout      String    // JSON string of dashboard layout
+  userId      String    // Reference to the user who owns this dashboard
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  key         String    @unique
+  userId      String    // Reference to the user who owns this API key
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  lastUsed    DateTime?
+  isActive    Boolean   @default(true)
+  permissions String    // JSON string of permissions
+
+  @@index([userId])
+  @@index([key])
 }

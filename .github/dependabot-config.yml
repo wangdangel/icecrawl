@@ -1,0 +1,70 @@
+version: 2
+updates:
+  # Enable npm dependency updates
+  - package-ecosystem: "npm"
+    # Look for package.json and package-lock.json in the `root` directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Group all minor and patch updates together
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    # Target branch for pull requests
+    target-branch: "develop"
+    # Add reviewers
+    reviewers:
+      - "owner"
+    # Add labels
+    labels:
+      - "dependencies"
+    # Set version strategies
+    versioning-strategy: auto
+    # Set commit message format
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Open pull requests for security updates only if there are vulnerabilities
+    open-pull-requests-limit: 15
+    
+  # Enable GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci"
+      - "dependencies"
+    reviewers:
+      - "owner"
+    target-branch: "develop"
+
+  # Maintain GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci"
+      - "dependencies"
+    reviewers:
+      - "owner"
+    target-branch: "develop"
