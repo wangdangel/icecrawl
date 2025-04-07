@@ -49,7 +49,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wangdangel/icecrawl.git"
+    "url": "git+https://github.com/wangdangel/icecrawl.git"
   },
   "homepage": "https://ambientflare.com/opensource/icecrawl",
   "bugs": {
