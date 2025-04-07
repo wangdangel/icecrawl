@@ -12,6 +12,7 @@
     "prisma/schema.prisma",
     "prisma/seed.js",
     "prisma/seed.js.map",
+    "prisma/migrations",
     "README.md",
     "LICENSE",
     "package.json",
