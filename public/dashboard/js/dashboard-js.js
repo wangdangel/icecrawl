@@ -14,7 +14,13 @@ const state = {
     limit: 10,
     total: 0,
   },
-  jobs: {
+  jobs: { // Scrape jobs
+    data: [],
+    page: 1,
+    limit: 10,
+    total: 0,
+  },
+  crawlJobs: { // Crawl jobs
     data: [],
     page: 1,
     limit: 10,
@@ -25,115 +31,161 @@ const state = {
 // Global variable to hold the chart instance
 let activityChartInstance = null;
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-  // Check authentication
-  checkAuth();
-  
+// --- DOM Element References ---
+let navDashboard, navScrapes, navJobs, navCrawlJobs, navTransformers;
+let userMenuButton, userMenu, userInitials, userMenuLogout;
+let newScrapeButton, newCrawlButton;
+let newScrapeModal, scrapeCancelButton, scrapeSubmitButton, newScrapeForm;
+let newCrawlModal, crawlCancelButton, crawlSubmitButton, newCrawlForm;
+let pageDashboard, pageScrapes, pageJobs, pageCrawlJobs, pageTransformers;
+let scrapesTable, scrapesPaginationPrev, scrapesPaginationNext, scrapesPaginationCurrent, scrapesPaginationShowing, scrapesPaginationTotal;
+let jobsTable, jobsPaginationPrev, jobsPaginationNext, jobsPaginationCurrent, jobsPaginationShowing, jobsPaginationTotal, statusFilter;
+let crawlJobsTable, crawlJobsPaginationPrev, crawlJobsPaginationNext, crawlJobsPaginationCurrent, crawlJobsPaginationShowing, crawlJobsPaginationTotal, crawlStatusFilter;
+// Add other element references as needed
+
+function cacheDOMElements() {
+  navDashboard = document.getElementById('nav-dashboard');
+  navScrapes = document.getElementById('nav-scrapes');
+  navJobs = document.getElementById('nav-jobs');
+  navCrawlJobs = document.getElementById('nav-crawl-jobs');
+  navTransformers = document.getElementById('nav-transformers');
+
+  userMenuButton = document.getElementById('user-menu-button');
+  userMenu = document.getElementById('user-menu');
+  userInitials = document.getElementById('user-initials');
+  userMenuLogout = document.getElementById('user-menu-logout');
+
+  newScrapeButton = document.getElementById('new-scrape-button');
+  newCrawlButton = document.getElementById('new-crawl-button');
+
+  newScrapeModal = document.getElementById('new-scrape-modal');
+  scrapeCancelButton = document.getElementById('scrape-cancel');
+  scrapeSubmitButton = document.getElementById('scrape-submit');
+  newScrapeForm = document.getElementById('new-scrape-form');
+
+  newCrawlModal = document.getElementById('new-crawl-modal');
+  crawlCancelButton = document.getElementById('crawl-cancel');
+  crawlSubmitButton = document.getElementById('crawl-submit');
+  newCrawlForm = document.getElementById('new-crawl-form');
+
+  pageDashboard = document.getElementById('page-dashboard');
+  pageScrapes = document.getElementById('page-scrapes');
+  pageJobs = document.getElementById('page-jobs');
+  pageCrawlJobs = document.getElementById('page-crawl-jobs');
+  pageTransformers = document.getElementById('page-transformers');
+
+  scrapesTable = document.getElementById('scrapes-table');
+  scrapesPaginationPrev = document.getElementById('scrapes-pagination-prev');
+  scrapesPaginationNext = document.getElementById('scrapes-pagination-next');
+  scrapesPaginationCurrent = document.getElementById('scrapes-pagination-current');
+  scrapesPaginationShowing = document.getElementById('scrapes-pagination-showing');
+  scrapesPaginationTotal = document.getElementById('scrapes-pagination-total');
+
+  jobsTable = document.getElementById('jobs-table');
+  jobsPaginationPrev = document.getElementById('jobs-pagination-prev');
+  jobsPaginationNext = document.getElementById('jobs-pagination-next');
+  jobsPaginationCurrent = document.getElementById('jobs-pagination-current');
+  jobsPaginationShowing = document.getElementById('jobs-pagination-showing');
+  jobsPaginationTotal = document.getElementById('jobs-pagination-total');
+  statusFilter = document.getElementById('status-filter');
+
+  crawlJobsTable = document.getElementById('crawl-jobs-table');
+  crawlJobsPaginationPrev = document.getElementById('crawl-jobs-pagination-prev');
+  crawlJobsPaginationNext = document.getElementById('crawl-jobs-pagination-next');
+  crawlJobsPaginationCurrent = document.getElementById('crawl-jobs-pagination-current');
+  crawlJobsPaginationShowing = document.getElementById('crawl-jobs-pagination-showing');
+  crawlJobsPaginationTotal = document.getElementById('crawl-jobs-pagination-total');
+  crawlStatusFilter = document.getElementById('crawl-status-filter');
+}
+
+
+// --- Event Listeners Setup ---
+function setupEventListeners() {
   // Navigation
-  document.getElementById('nav-dashboard').addEventListener('click', e => {
-    e.preventDefault();
-    switchPage('dashboard');
-  });
-  
-  document.getElementById('nav-scrapes').addEventListener('click', e => {
-    e.preventDefault();
-    switchPage('scrapes');
-  });
-  
-  document.getElementById('nav-jobs').addEventListener('click', e => {
-    e.preventDefault();
-    switchPage('jobs');
-  });
-  
-  document.getElementById('nav-transformers').addEventListener('click', e => {
-    e.preventDefault();
-    switchPage('transformers');
-  });
-  
+  navDashboard.addEventListener('click', e => { e.preventDefault(); switchPage('dashboard'); });
+  navScrapes.addEventListener('click', e => { e.preventDefault(); switchPage('scrapes'); });
+  navJobs.addEventListener('click', e => { e.preventDefault(); switchPage('jobs'); });
+  navCrawlJobs.addEventListener('click', e => { e.preventDefault(); switchPage('crawl-jobs'); });
+  navTransformers.addEventListener('click', e => { e.preventDefault(); switchPage('transformers'); });
+
   // User menu
-  document.getElementById('user-menu-button').addEventListener('click', toggleUserMenu);
-  document.getElementById('user-menu-logout').addEventListener('click', logout);
-  
-  // New scrape button
-  document.getElementById('new-scrape-button').addEventListener('click', showNewScrapeModal);
-  document.getElementById('scrape-cancel').addEventListener('click', hideNewScrapeModal);
-  document.getElementById('scrape-submit').addEventListener('click', submitNewScrape);
-  
+  userMenuButton.addEventListener('click', toggleUserMenu);
+  userMenuLogout.addEventListener('click', logout);
+
+  // New scrape/crawl buttons & modals
+  newScrapeButton.addEventListener('click', showNewScrapeModal);
+  scrapeCancelButton.addEventListener('click', hideNewScrapeModal);
+  scrapeSubmitButton.addEventListener('click', submitNewScrape);
+
+  newCrawlButton.addEventListener('click', showNewCrawlModal);
+  crawlCancelButton.addEventListener('click', hideNewCrawlModal);
+  crawlSubmitButton.addEventListener('click', submitNewCrawl);
+
   // Pagination for scrapes
-  document.getElementById('scrapes-pagination-prev').addEventListener('click', () => {
-    if (state.scrapes.page > 1) {
-      state.scrapes.page--;
-      loadScrapes();
-    }
+  scrapesPaginationPrev.addEventListener('click', () => {
+    if (state.scrapes.page > 1) { state.scrapes.page--; loadScrapes(); }
   });
-  
-  document.getElementById('scrapes-pagination-next').addEventListener('click', () => {
-    if (state.scrapes.page < Math.ceil(state.scrapes.total / state.scrapes.limit)) {
-      state.scrapes.page++;
-      loadScrapes();
-    }
+  scrapesPaginationNext.addEventListener('click', () => {
+    if (state.scrapes.page < Math.ceil(state.scrapes.total / state.scrapes.limit)) { state.scrapes.page++; loadScrapes(); }
   });
-  
-  // Pagination for jobs
-  document.getElementById('jobs-pagination-prev').addEventListener('click', () => {
-    if (state.jobs.page > 1) {
-      state.jobs.page--;
-      loadJobs();
-    }
+
+  // Pagination for scrape jobs
+  jobsPaginationPrev.addEventListener('click', () => {
+    if (state.jobs.page > 1) { state.jobs.page--; loadJobs(); }
   });
-  
-  document.getElementById('jobs-pagination-next').addEventListener('click', () => {
-    if (state.jobs.page < Math.ceil(state.jobs.total / state.jobs.limit)) {
-      state.jobs.page++;
-      loadJobs();
-    }
+  jobsPaginationNext.addEventListener('click', () => {
+    if (state.jobs.page < Math.ceil(state.jobs.total / state.jobs.limit)) { state.jobs.page++; loadJobs(); }
   });
-  
+
+  // Pagination for crawl jobs
+  crawlJobsPaginationPrev.addEventListener('click', () => {
+    if (state.crawlJobs.page > 1) { state.crawlJobs.page--; loadCrawlJobs(); }
+  });
+  crawlJobsPaginationNext.addEventListener('click', () => {
+    if (state.crawlJobs.page < Math.ceil(state.crawlJobs.total / state.crawlJobs.limit)) { state.crawlJobs.page++; loadCrawlJobs(); }
+  });
+
   // View all scrapes link
-  document.getElementById('view-all-scrapes').addEventListener('click', e => {
-    e.preventDefault();
-    switchPage('scrapes');
-  });
-  
+  document.getElementById('view-all-scrapes').addEventListener('click', e => { e.preventDefault(); switchPage('scrapes'); });
+
   // Search input on scrapes page
-  document.getElementById('search').addEventListener('input', debounce(() => {
-    state.scrapes.page = 1;
-    loadScrapes();
-  }, 300));
-  
+  document.getElementById('search').addEventListener('input', debounce(() => { state.scrapes.page = 1; loadScrapes(); }, 300));
+
   // Category and tag filters on scrapes page
-  document.getElementById('category').addEventListener('change', () => {
-    state.scrapes.page = 1;
-    loadScrapes();
-  });
-  
-  document.getElementById('tag').addEventListener('change', () => {
-    state.scrapes.page = 1;
-    loadScrapes();
-  });
-  
-  // Status filter on jobs page
-  document.getElementById('status-filter').addEventListener('change', () => {
-    state.jobs.page = 1;
-    loadJobs();
-  });
+  document.getElementById('category').addEventListener('change', () => { state.scrapes.page = 1; loadScrapes(); });
+  document.getElementById('tag').addEventListener('change', () => { state.scrapes.page = 1; loadScrapes(); });
+
+  // Status filter on scrape jobs page
+  statusFilter.addEventListener('change', () => { state.jobs.page = 1; loadJobs(); });
+
+  // Status filter on crawl jobs page
+  crawlStatusFilter.addEventListener('change', () => { state.crawlJobs.page = 1; loadCrawlJobs(); });
+}
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+  cacheDOMElements(); // Cache elements first
+  checkAuth(); // Then check auth (which might redirect)
+  if (state.token) { // Only setup listeners if authenticated
+      setupEventListeners();
+  }
 });
 
-// Check authentication
+
+// --- Authentication ---
 function checkAuth() {
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
-  
+
   if (token && user) {
     state.token = token;
     state.user = JSON.parse(user);
-    
+
     // Set user initials
     const userInitials = state.user.username.substring(0, 2).toUpperCase();
-    document.getElementById('user-initials').textContent = userInitials;
-    
-    // Load data
+    userInitials.textContent = userInitials;
+
+    // Load initial data
     loadDashboardData();
   } else {
     // Redirect to login page
@@ -141,12 +193,18 @@ function checkAuth() {
   }
 }
 
-// Load dashboard data
+// --- Data Loading ---
 function loadDashboardData() {
-  // Show active page
+  // Show active page (might load data itself)
   switchPage(state.activePage);
-  
-  // Load page-specific data
+  // Explicitly load dashboard data if that's the active page
+  if (state.activePage === 'dashboard') {
+      loadDashboardStats();
+      loadRecentScrapes();
+  }
+}
+
+function loadDataForCurrentPage() {
   if (state.activePage === 'dashboard') {
     loadDashboardStats();
     loadRecentScrapes();
@@ -155,6 +213,8 @@ function loadDashboardData() {
     loadTags(); // Load tags for filter
   } else if (state.activePage === 'jobs') {
     loadJobs();
+  } else if (state.activePage === 'crawl-jobs') {
+    loadCrawlJobs();
   } else if (state.activePage === 'transformers') {
     loadTransformers();
   }
@@ -164,51 +224,19 @@ function loadDashboardData() {
 async function loadDashboardStats() {
   try {
     const response = await fetch('/api/dashboard/statistics', {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load dashboard statistics');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load dashboard statistics');
     const result = await response.json();
-    
     if (result.status === 'success') {
-      // Update statistics
       document.getElementById('stat-total-scrapes').textContent = result.data.totalScrapes;
       document.getElementById('stat-favorites').textContent = result.data.totalFavorites;
-      
-      // Pending and failed jobs stats
-      const pendingJobs = result.data.jobStats?.pending || 0;
-      const failedJobs = result.data.jobStats?.failed || 0;
+      const pendingJobs = (result.data.scrapeJobStats?.pending || 0) + (result.data.crawlJobStats?.pending || 0);
+      const failedJobs = (result.data.scrapeJobStats?.failed || 0) + (result.data.crawlJobStats?.failed || 0);
       document.getElementById('stat-pending-jobs').textContent = pendingJobs;
       document.getElementById('stat-failed-jobs').textContent = failedJobs;
-      
-      // Create activity chart
       createActivityChart(result.data.scrapesByDay);
-      
-      // Update top domains table
-      const topDomainsTable = document.getElementById('top-domains-table');
-      topDomainsTable.innerHTML = '';
-      
-      if (result.data.topDomains.length === 0) {
-        topDomainsTable.innerHTML = `
-          <tr>
-            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="2">No data available</td>
-          </tr>
-        `;
-      } else {
-        result.data.topDomains.forEach(domain => {
-          topDomainsTable.innerHTML += `
-            <tr>
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">${domain.domain}</td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${domain.count}</td>
-            </tr>
-          `;
-        });
-      }
+      renderTopDomains(result.data.topDomains);
     } else {
       console.error('Error loading dashboard statistics:', result.message);
     }
@@ -217,27 +245,31 @@ async function loadDashboardStats() {
   }
 }
 
+function renderTopDomains(domains) {
+     const topDomainsTable = document.getElementById('top-domains-table');
+      topDomainsTable.innerHTML = '';
+      if (domains.length === 0) {
+        topDomainsTable.innerHTML = `<tr><td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="2">No data available</td></tr>`;
+      } else {
+        domains.forEach(domain => {
+          topDomainsTable.innerHTML += `
+            <tr>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">${domain.domain}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${domain.count}</td>
+            </tr>`;
+        });
+      }
+}
+
 // Create activity chart
 function createActivityChart(data) {
-  // Destroy existing chart instance if it exists
-  if (activityChartInstance) {
-    activityChartInstance.destroy();
-  }
-
+  if (activityChartInstance) activityChartInstance.destroy();
   const ctx = document.getElementById('scraping-activity-chart').getContext('2d');
-  
-  // Format dates and prepare data
-  const labels = [];
-  const values = [];
-  
-  data.forEach(item => {
-    labels.push(moment(item.date).format('MMM D'));
-    values.push(item.count);
-  });
-  
-  // Create chart and store the instance
-  const newChart = new Chart(ctx, {
-    type: 'line',
+  const labels = data.map(item => moment(item.date).format('MMM D'));
+  const values = data.map(item => item.count);
+
+  activityChartInstance = new Chart(ctx, { /* ... chart config ... */
+     type: 'line',
     data: {
       labels: labels,
       datasets: [{
@@ -253,70 +285,25 @@ function createActivityChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          precision: 0,
-        }
-      },
+      scales: { y: { beginAtZero: true, precision: 0 } },
       plugins: {
-        legend: {
-          display: false,
-        },
-        tooltip: {
-          callbacks: {
-            title: function(context) {
-              return context[0].label;
-            },
-            label: function(context) {
-              return `${context.parsed.y} scrapes`;
-            }
-          }
-        }
+        legend: { display: false },
+        tooltip: { callbacks: { label: context => `${context.parsed.y} scrapes` } }
       }
     }
   });
-  activityChartInstance = newChart; // Assign the created chart to the global instance
 }
 
 // Load recent scrapes
 async function loadRecentScrapes() {
   try {
     const response = await fetch('/api/dashboard/recent-scrapes?limit=5', {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load recent scrapes');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load recent scrapes');
     const result = await response.json();
-    
     if (result.status === 'success') {
-      const scrapes = result.data.scrapes;
-      const table = document.getElementById('recent-scrapes-table');
-      table.innerHTML = '';
-      
-      if (scrapes.length === 0) {
-        table.innerHTML = `
-          <tr>
-            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="2">No scrapes found</td>
-          </tr>
-        `;
-      } else {
-        scrapes.forEach(scrape => {
-          table.innerHTML += `
-            <tr>
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                <a href="/scrape/${scrape.id}" class="text-indigo-600 hover:text-indigo-900">${scrape.title || 'Untitled'}</a>
-              </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${moment(scrape.createdAt).fromNow()}</td>
-            </tr>
-          `;
-        });
-      }
+      renderRecentScrapes(result.data.scrapes);
     } else {
       console.error('Error loading recent scrapes:', result.message);
     }
@@ -325,53 +312,65 @@ async function loadRecentScrapes() {
   }
 }
 
+function renderRecentScrapes(scrapes) {
+    const table = document.getElementById('recent-scrapes-table');
+    table.innerHTML = '';
+    if (scrapes.length === 0) {
+        table.innerHTML = `<tr><td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="2">No scrapes found</td></tr>`;
+    } else {
+        scrapes.forEach(scrape => {
+          table.innerHTML += `
+            <tr>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                <a href="/scrape/${scrape.id}" class="text-indigo-600 hover:text-indigo-900">${scrape.title || 'Untitled'}</a>
+              </td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${moment(scrape.createdAt).fromNow()}</td>
+            </tr>`;
+        });
+    }
+}
+
 // Load scrapes for My Scrapes page
 async function loadScrapes() {
   try {
-    // Get filters
-    const search = document.getElementById('search').value;
-    const category = document.getElementById('category').value;
-    const tag = document.getElementById('tag').value;
-    
-    // Build query params
     const params = new URLSearchParams({
       page: state.scrapes.page,
-      limit: state.scrapes.limit
+      limit: state.scrapes.limit,
+      search: document.getElementById('search').value,
+      category: document.getElementById('category').value,
+      tag: document.getElementById('tag').value
     });
-    
-    if (search) params.append('search', search);
-    if (category) params.append('category', category);
-    if (tag) params.append('tag', tag);
-    
+    // Remove empty params
+    for(let p of params) { if (!p[1]) params.delete(p[0]); }
+
     const response = await fetch(`/api/dashboard/scrapes?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load scrapes');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load scrapes');
     const result = await response.json();
-    
+
     if (result.status === 'success') {
       state.scrapes.data = result.data.scrapes;
       state.scrapes.total = result.data.pagination.total;
-      
-      // Update table
-      const table = document.getElementById('scrapes-table');
-      table.innerHTML = '';
-      
-      if (state.scrapes.data.length === 0) {
-        table.innerHTML = `
-          <tr>
-            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="5">No scrapes found</td>
-          </tr>
-        `;
-      } else {
-        state.scrapes.data.forEach(scrape => {
-          table.innerHTML += `
+      renderScrapesTable(state.scrapes.data);
+      renderPagination('scrapes', state.scrapes);
+    } else {
+      console.error('Error loading scrapes:', result.message);
+      scrapesTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-600">Error loading scrapes: ${result.message}</td></tr>`;
+    }
+  } catch (error) {
+    console.error('Error loading scrapes:', error);
+     scrapesTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-600">Error loading scrapes: ${error.message}</td></tr>`;
+  }
+}
+
+function renderScrapesTable(scrapes) {
+    scrapesTable.innerHTML = '';
+    if (scrapes.length === 0) {
+        scrapesTable.innerHTML = `<tr><td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="5">No scrapes found</td></tr>`;
+    } else {
+        scrapes.forEach(scrape => {
+          scrapesTable.innerHTML += `
             <tr>
               <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                 <a href="/scrape/${scrape.id}" class="text-indigo-600 hover:text-indigo-900">${scrape.title || 'Untitled'}</a>
@@ -382,72 +381,33 @@ async function loadScrapes() {
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${scrape.category || '-'}</td>
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${moment(scrape.createdAt).format('MMM D, YYYY')}</td>
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                <button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${scrape.id}" data-action="view">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button class="text-yellow-600 hover:text-yellow-900 mr-2" data-id="${scrape.id}" data-action="favorite">
-                  <i class="fas ${scrape.isFavorite ? 'fa-star' : 'fa-star-o'}"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-900" data-id="${scrape.id}" data-action="delete">
-                  <i class="fas fa-trash"></i>
-                </button>
+                <button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${scrape.id}" data-action="view"><i class="fas fa-eye"></i></button>
+                <button class="text-yellow-600 hover:text-yellow-900 mr-2" data-id="${scrape.id}" data-action="favorite"><i class="fas ${scrape.isFavorite ? 'fa-star' : 'fa-star-o'}"></i></button>
+                <button class="text-red-600 hover:text-red-900" data-id="${scrape.id}" data-action="delete"><i class="fas fa-trash"></i></button>
               </td>
-            </tr>
-          `;
+            </tr>`;
         });
-        
         // Add event listeners to action buttons
-        document.querySelectorAll('[data-action]').forEach(button => {
+        scrapesTable.querySelectorAll('[data-action]').forEach(button => {
           button.addEventListener('click', handleScrapeAction);
         });
-      }
-      
-      // Update pagination
-      document.getElementById('scrapes-pagination-showing').textContent = 
-        `${(state.scrapes.page - 1) * state.scrapes.limit + 1}-${Math.min(state.scrapes.page * state.scrapes.limit, state.scrapes.total)}`;
-      document.getElementById('scrapes-pagination-total').textContent = state.scrapes.total;
-      document.getElementById('scrapes-pagination-current').textContent = state.scrapes.page;
-      
-      // Enable/disable pagination buttons
-      document.getElementById('scrapes-pagination-prev').disabled = state.scrapes.page <= 1;
-      document.getElementById('scrapes-pagination-next').disabled = 
-        state.scrapes.page >= Math.ceil(state.scrapes.total / state.scrapes.limit);
-    } else {
-      console.error('Error loading scrapes:', result.message);
     }
-  } catch (error) {
-    console.error('Error loading scrapes:', error);
-  }
 }
 
 // Load tags for filter
 async function loadTags() {
   try {
     const response = await fetch('/api/dashboard/tags', {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load tags');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load tags');
     const result = await response.json();
-    
     if (result.status === 'success') {
-      const tags = result.data.tags;
       const tagSelect = document.getElementById('tag');
-      
-      // Clear existing options (except the first one)
-      while (tagSelect.options.length > 1) {
-        tagSelect.remove(1);
-      }
-      
-      // Add tags
-      tags.forEach(tag => {
+      while (tagSelect.options.length > 1) tagSelect.remove(1); // Clear existing
+      result.data.tags.forEach(tag => {
         const option = document.createElement('option');
-        option.value = tag.id;
+        option.value = tag.id; // Use ID or name? Assuming name for now
         option.textContent = tag.name;
         tagSelect.appendChild(option);
       });
@@ -459,161 +419,150 @@ async function loadTags() {
   }
 }
 
-// Load jobs for Jobs page
+// Load scrape jobs for Jobs page
 async function loadJobs() {
   try {
-    // Get status filter
-    const statusFilter = document.getElementById('status-filter').value;
-    
-    // Build query params
     const params = new URLSearchParams({
       page: state.jobs.page,
-      limit: state.jobs.limit
+      limit: state.jobs.limit,
+      status: statusFilter.value
     });
-    
-    if (statusFilter) params.append('status', statusFilter);
-    
+    if (!statusFilter.value) params.delete('status');
+
+    // TODO: Update API endpoint if needed
     const response = await fetch(`/api/dashboard/scrape-jobs?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load jobs');
-    }
-    
+    if (!response.ok) throw new Error(`Failed to load scrape jobs: ${response.statusText}`);
     const result = await response.json();
-    
+
     if (result.status === 'success') {
       state.jobs.data = result.data.jobs;
       state.jobs.total = result.data.pagination.total;
-      
-      // Update table
-      const table = document.getElementById('jobs-table');
-      table.innerHTML = '';
-      
-      if (state.jobs.data.length === 0) {
-        table.innerHTML = `
-          <tr>
-            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="5">No jobs found</td>
-          </tr>
-        `;
-      } else {
-        state.jobs.data.forEach(job => {
-          // Determine status class
-          let statusClass = 'bg-gray-100 text-gray-800'; // Default
+      renderJobsTable(state.jobs.data);
+      renderPagination('jobs', state.jobs);
+    } else {
+      console.error('Error loading jobs:', result.message);
+      jobsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-600">Error loading jobs: ${result.message}</td></tr>`;
+    }
+  } catch (error) {
+    console.error('Error loading jobs:', error);
+    jobsTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-600">Error loading jobs: ${error.message}</td></tr>`;
+  }
+}
+
+function renderJobsTable(jobs) {
+    jobsTable.innerHTML = '';
+    if (jobs.length === 0) {
+        jobsTable.innerHTML = `<tr><td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="5">No jobs found</td></tr>`;
+    } else {
+        jobs.forEach(job => {
+          let statusClass = 'bg-gray-100 text-gray-800';
           if (job.status === 'pending') statusClass = 'bg-yellow-100 text-yellow-800';
           if (job.status === 'processing') statusClass = 'bg-blue-100 text-blue-800';
           if (job.status === 'completed') statusClass = 'bg-green-100 text-green-800';
           if (job.status === 'failed') statusClass = 'bg-red-100 text-red-800';
-          
-          table.innerHTML += `
+
+          jobsTable.innerHTML += `
             <tr>
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                <a href="${job.url}" target="_blank" class="text-indigo-600 hover:text-indigo-900">${truncateUrl(job.url)}</a>
-              </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
-                  ${job.status}
-                </span>
-              </td>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0"><a href="${job.url}" target="_blank" class="text-indigo-600 hover:text-indigo-900">${truncateUrl(job.url)}</a></td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">${job.status}</span></td>
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${moment(job.createdAt).format('MMM D, YYYY HH:mm')}</td>
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${job.endTime ? moment(job.endTime).format('MMM D, YYYY HH:mm') : '-'}</td>
               <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                ${job.status === 'completed' ? 
-                  `<a href="/scrape/${job.resultId}" class="text-indigo-600 hover:text-indigo-900 mr-2">
-                    <i class="fas fa-eye"></i> View
-                  </a>` : ''}
-                ${job.status === 'failed' ? 
-                  `<button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="retry">
-                    <i class="fas fa-redo"></i> Retry
-                  </button>` : ''}
-                <button class="text-red-600 hover:text-red-900" data-id="${job.id}" data-action="delete-job">
-                  <i class="fas fa-trash"></i>
-                </button>
+                ${job.status === 'completed' ? `<a href="/scrape/${job.resultId}" class="text-indigo-600 hover:text-indigo-900 mr-2"><i class="fas fa-eye"></i> View</a>` : ''}
+                ${job.status === 'failed' ? `<button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="retry"><i class="fas fa-redo"></i> Retry</button>` : ''}
+                <button class="text-red-600 hover:text-red-900" data-id="${job.id}" data-action="delete-job"><i class="fas fa-trash"></i></button>
               </td>
-            </tr>
-          `;
+            </tr>`;
         });
-        
-        // Add event listeners to action buttons
-        document.querySelectorAll('[data-action="retry"]').forEach(button => {
-          button.addEventListener('click', handleJobRetry);
-        });
-        
-        document.querySelectorAll('[data-action="delete-job"]').forEach(button => {
-          button.addEventListener('click', handleJobDelete);
-        });
+        jobsTable.querySelectorAll('[data-action="retry"]').forEach(b => b.addEventListener('click', handleJobRetry));
+        jobsTable.querySelectorAll('[data-action="delete-job"]').forEach(b => b.addEventListener('click', handleJobDelete));
+    }
+}
+
+// Load crawl jobs for Crawl Jobs page (New)
+async function loadCrawlJobs() {
+  try {
+    const params = new URLSearchParams({
+      page: state.crawlJobs.page,
+      limit: state.crawlJobs.limit,
+      status: crawlStatusFilter.value
+    });
+     if (!crawlStatusFilter.value) params.delete('status');
+
+    // TODO: Update API endpoint if needed, maybe /api/crawl/jobs ? or keep /api/dashboard/crawl-jobs
+    const response = await fetch(`/api/dashboard/crawl-jobs?${params.toString()}`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+         console.warn('Crawl jobs API endpoint not found yet.');
+         crawlJobsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4">Feature under development. API endpoint not found.</td></tr>`;
+         return;
       }
-      
-      // Update pagination
-      document.getElementById('jobs-pagination-showing').textContent = 
-        `${(state.jobs.page - 1) * state.jobs.limit + 1}-${Math.min(state.jobs.page * state.jobs.limit, state.jobs.total)}`;
-      document.getElementById('jobs-pagination-total').textContent = state.jobs.total;
-      document.getElementById('jobs-pagination-current').textContent = state.jobs.page;
-      
-      // Enable/disable pagination buttons
-      document.getElementById('jobs-pagination-prev').disabled = state.jobs.page <= 1;
-      document.getElementById('jobs-pagination-next').disabled = 
-        state.jobs.page >= Math.ceil(state.jobs.total / state.jobs.limit);
+      throw new Error(`Failed to load crawl jobs: ${response.statusText}`);
+    }
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      state.crawlJobs.data = result.data.jobs; // Assuming API returns jobs array
+      state.crawlJobs.total = result.data.pagination.total;
+      renderCrawlJobsTable(state.crawlJobs.data);
+      renderPagination('crawl-jobs', state.crawlJobs);
     } else {
-      console.error('Error loading jobs:', result.message);
+      console.error('Error loading crawl jobs:', result.message);
+      crawlJobsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading jobs: ${result.message}</td></tr>`;
     }
   } catch (error) {
-    console.error('Error loading jobs:', error);
+    console.error('Error loading crawl jobs:', error);
+    crawlJobsTable.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading jobs: ${error.message}</td></tr>`;
   }
 }
+
+function renderCrawlJobsTable(jobs) {
+    crawlJobsTable.innerHTML = '';
+    if (jobs.length === 0) {
+        crawlJobsTable.innerHTML = `<tr><td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="6">No crawl jobs found</td></tr>`;
+    } else {
+        jobs.forEach(job => {
+          let statusClass = 'bg-gray-100 text-gray-800';
+          if (job.status === 'pending') statusClass = 'bg-yellow-100 text-yellow-800';
+          if (job.status === 'processing') statusClass = 'bg-blue-100 text-blue-800';
+          if (job.status === 'completed') statusClass = 'bg-green-100 text-green-800';
+          if (job.status === 'completed_with_errors') statusClass = 'bg-orange-100 text-orange-800';
+          if (job.status === 'failed') statusClass = 'bg-red-100 text-red-800';
+
+          crawlJobsTable.innerHTML += `
+            <tr>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0"><a href="${job.startUrl}" target="_blank" class="text-indigo-600 hover:text-indigo-900">${truncateUrl(job.startUrl)}</a></td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">${job.status}</span></td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${moment(job.createdAt).format('MMM D, YYYY HH:mm')}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${job.endTime ? moment(job.endTime).format('MMM D, YYYY HH:mm') : '-'}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${job.processedUrls || 0} / ${job.foundUrls || 0}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                 <button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="view-crawl"><i class="fas fa-info-circle"></i> Details</button>
+                 <button class="text-red-600 hover:text-red-900" data-id="${job.id}" data-action="delete-crawl-job"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>`;
+        });
+        crawlJobsTable.querySelectorAll('[data-action="view-crawl"]').forEach(b => b.addEventListener('click', handleCrawlJobView));
+        crawlJobsTable.querySelectorAll('[data-action="delete-crawl-job"]').forEach(b => b.addEventListener('click', handleCrawlJobDelete));
+    }
+}
+
 
 // Load transformers for Transformers page
 async function loadTransformers() {
   try {
     const response = await fetch('/api/dashboard/transformers', {
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      }
+      headers: { 'Authorization': `Bearer ${state.token}` }
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load transformers');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load transformers');
     const result = await response.json();
-    
     if (result.status === 'success') {
-      const transformers = result.data.transformers;
-      const transformersList = document.getElementById('transformers-list');
-      transformersList.innerHTML = '';
-      
-      if (transformers.length === 0) {
-        transformersList.innerHTML = '<p class="text-gray-500">No transformers available</p>';
-      } else {
-        transformers.forEach(transformer => {
-          transformersList.innerHTML += `
-            <div class="bg-gray-100 p-4 rounded-lg shadow-sm">
-              <div class="flex items-start">
-                <div class="flex-shrink-0">
-                  <i class="fas fa-cogs text-indigo-600 text-xl"></i>
-                </div>
-                <div class="ml-3">
-                  <h3 class="text-md font-medium text-gray-900">${transformer.name}</h3>
-                  <p class="mt-1 text-sm text-gray-500">${transformer.description}</p>
-                </div>
-              </div>
-              <div class="mt-4">
-                <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-transformer="${transformer.name}">
-                  Apply
-                </button>
-              </div>
-            </div>
-          `;
-        });
-        
-        // Add event listeners
-        document.querySelectorAll('[data-transformer]').forEach(button => {
-          button.addEventListener('click', handleTransformerApply);
-        });
-      }
+      renderTransformers(result.data.transformers);
     } else {
       console.error('Error loading transformers:', result.message);
     }
@@ -622,114 +571,110 @@ async function loadTransformers() {
   }
 }
 
-// Switch between pages
+function renderTransformers(transformers) {
+    const transformersList = document.getElementById('transformers-list');
+    transformersList.innerHTML = '';
+    if (transformers.length === 0) {
+        transformersList.innerHTML = '<p class="text-gray-500">No transformers available</p>';
+    } else {
+        transformers.forEach(transformer => {
+          transformersList.innerHTML += `
+            <div class="bg-gray-100 p-4 rounded-lg shadow-sm">
+              <div class="flex items-start">
+                <div class="flex-shrink-0"><i class="fas fa-cogs text-indigo-600 text-xl"></i></div>
+                <div class="ml-3">
+                  <h3 class="text-md font-medium text-gray-900">${transformer.name}</h3>
+                  <p class="mt-1 text-sm text-gray-500">${transformer.description}</p>
+                </div>
+              </div>
+              <div class="mt-4">
+                <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" data-transformer="${transformer.name}">Apply</button>
+              </div>
+            </div>`;
+        });
+        transformersList.querySelectorAll('[data-transformer]').forEach(b => b.addEventListener('click', handleTransformerApply));
+    }
+}
+
+// --- Page Switching ---
 function switchPage(page) {
   // Hide all pages
-  document.getElementById('page-dashboard').classList.add('hidden');
-  document.getElementById('page-scrapes').classList.add('hidden');
-  document.getElementById('page-jobs').classList.add('hidden');
-  document.getElementById('page-transformers').classList.add('hidden');
-  
+  pageDashboard.classList.add('hidden');
+  pageScrapes.classList.add('hidden');
+  pageJobs.classList.add('hidden');
+  pageCrawlJobs.classList.add('hidden'); // Hide new page
+  pageTransformers.classList.add('hidden');
+
   // Show selected page
-  document.getElementById(`page-${page}`).classList.remove('hidden');
-  
-  // Update navigation
-  document.querySelectorAll('#nav-dashboard, #nav-scrapes, #nav-jobs, #nav-transformers').forEach(nav => {
+  const targetPage = document.getElementById(`page-${page}`);
+  if (targetPage) {
+      targetPage.classList.remove('hidden');
+  } else {
+      console.error(`Page element not found: page-${page}`);
+      pageDashboard.classList.remove('hidden'); // Fallback to dashboard
+      page = 'dashboard';
+  }
+
+
+  // Update navigation highlights
+  document.querySelectorAll('#nav-dashboard, #nav-scrapes, #nav-jobs, #nav-crawl-jobs, #nav-transformers').forEach(nav => {
     nav.classList.remove('text-indigo-100', 'bg-indigo-800');
     nav.classList.add('text-white');
   });
-  
-  document.getElementById(`nav-${page}`).classList.add('text-indigo-100', 'bg-indigo-800');
-  document.getElementById(`nav-${page}`).classList.remove('text-white');
-  
+
+  const activeNav = document.getElementById(`nav-${page}`);
+  if (activeNav) {
+    activeNav.classList.add('text-indigo-100', 'bg-indigo-800');
+    activeNav.classList.remove('text-white');
+  }
+
   // Update state
   state.activePage = page;
-  
+
   // Load page-specific data
-  if (page === 'dashboard') {
-    loadDashboardStats();
-    loadRecentScrapes();
-  } else if (page === 'scrapes') {
-    loadScrapes();
-    loadTags();
-  } else if (page === 'jobs') {
-    loadJobs();
-  } else if (page === 'transformers') {
-    loadTransformers();
-  }
+  loadDataForCurrentPage();
 }
 
-// Toggle user menu
+// --- UI Interaction ---
 function toggleUserMenu() {
-  const menu = document.getElementById('user-menu');
-  menu.classList.toggle('hidden');
+  userMenu.classList.toggle('hidden');
 }
 
-// Logout
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   window.location.href = '/login';
 }
 
-// Show new scrape modal
-function showNewScrapeModal() {
-  document.getElementById('new-scrape-modal').classList.remove('hidden');
-}
+// Modals
+function showNewScrapeModal() { newScrapeModal.classList.remove('hidden'); }
+function hideNewScrapeModal() { newScrapeModal.classList.add('hidden'); newScrapeForm.reset(); }
+function showNewCrawlModal() { newCrawlModal.classList.remove('hidden'); }
+function hideNewCrawlModal() { newCrawlModal.classList.add('hidden'); newCrawlForm.reset(); }
 
-// Hide new scrape modal
-function hideNewScrapeModal() {
-  document.getElementById('new-scrape-modal').classList.add('hidden');
-  document.getElementById('new-scrape-form').reset();
-}
-
-// Submit new scrape
+// --- Form Submissions ---
 async function submitNewScrape() {
   try {
     const url = document.getElementById('scrape-url').value;
     const category = document.getElementById('scrape-category').value;
     const notes = document.getElementById('scrape-notes').value;
     const useBrowser = document.getElementById('scrape-browser').checked;
-    
-    if (!url) {
-      alert('Please enter a URL');
-      return;
-    }
-    
-    // Submit form
+
+    if (!url) { alert('Please enter a URL'); return; }
+
     const response = await fetch('/api/scrape', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.token}`
-      },
-      body: JSON.stringify({
-        url,
-        category,
-        notes,
-        useBrowser,
-      }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify({ url, category, notes, useBrowser }),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to submit scrape job');
-    }
-    
+
     const result = await response.json();
-    
+    if (!response.ok) throw new Error(result.message || 'Failed to submit scrape job');
+
     if (result.status === 'success') {
       hideNewScrapeModal();
-      
-      // Show success message (updated)
-      alert('Scrape job submitted successfully. You can track its status on the Jobs page.');
-      
-      // Refresh data
-      if (state.activePage === 'dashboard') {
-        loadDashboardStats();
-        loadRecentScrapes();
-      } else if (state.activePage === 'jobs') {
-        loadJobs();
-      }
+      alert('Scrape job submitted successfully. Track status on the Scrape Jobs page.');
+      loadDataForCurrentPage();
     } else {
       alert(`Error: ${result.message}`);
     }
@@ -739,38 +684,60 @@ async function submitNewScrape() {
   }
 }
 
-// Handle scrape actions (view, favorite, delete)
+async function submitNewCrawl() {
+  try {
+    const startUrl = document.getElementById('crawl-start-url').value;
+    const maxDepthInput = document.getElementById('crawl-max-depth');
+    const domainScope = document.getElementById('crawl-domain-scope').value;
+    const useBrowser = document.getElementById('crawl-browser').checked;
+
+    if (!startUrl) { alert('Please enter a Start URL'); return; }
+
+    let maxDepth = maxDepthInput.value ? parseInt(maxDepthInput.value, 10) : null;
+    if (isNaN(maxDepth) || maxDepth < 0) maxDepth = null;
+
+    const payload = { startUrl, maxDepth, domainScope, useBrowser };
+
+    const response = await fetch('/api/crawl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+     if (!response.ok) throw new Error(result.message || 'Failed to submit crawl job');
+
+    if (result.status === 'success') {
+      hideNewCrawlModal();
+      alert('Crawl job submitted successfully. Track status on the Crawl Jobs page.');
+      switchPage('crawl-jobs');
+    } else {
+      alert(`Error: ${result.message}`);
+    }
+  } catch (error) {
+    console.error('Error submitting crawl job:', error);
+    alert(`Error: ${error.message}`);
+  }
+}
+
+// --- Action Handlers ---
 async function handleScrapeAction(e) {
   const action = e.currentTarget.dataset.action;
   const id = e.currentTarget.dataset.id;
-  
+
   if (action === 'view') {
-    // Navigate to scrape details page
     window.location.href = `/scrape/${id}`;
   } else if (action === 'favorite') {
     try {
+      const isCurrentlyFavorite = e.currentTarget.querySelector('i').classList.contains('fa-star');
       const response = await fetch(`/api/dashboard/scrape/${id}/favorite`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.token}`
-        },
-        body: JSON.stringify({
-          isFavorite: !e.currentTarget.querySelector('i').classList.contains('fa-star'),
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+        body: JSON.stringify({ isFavorite: !isCurrentlyFavorite }),
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status');
-      }
-      
-      // Refresh scrapes
-      loadScrapes();
-      
-      // Refresh dashboard stats if on dashboard
-      if (state.activePage === 'dashboard') {
-        loadDashboardStats();
-      }
+      if (!response.ok) throw new Error('Failed to update favorite status');
+      loadScrapes(); // Refresh table
+      if (state.activePage === 'dashboard') loadDashboardStats(); // Refresh stats if needed
     } catch (error) {
       console.error('Error updating favorite status:', error);
       alert(`Error: ${error.message}`);
@@ -780,23 +747,11 @@ async function handleScrapeAction(e) {
       try {
         const response = await fetch(`/api/dashboard/scrape/${id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${state.token}`
-          },
+          headers: { 'Authorization': `Bearer ${state.token}` },
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to delete scrape');
-        }
-        
-        // Refresh scrapes
-        loadScrapes();
-        
-        // Refresh dashboard stats if on dashboard
-        if (state.activePage === 'dashboard') {
-          loadDashboardStats();
-          loadRecentScrapes();
-        }
+        if (!response.ok) throw new Error('Failed to delete scrape');
+        loadScrapes(); // Refresh table
+        if (state.activePage === 'dashboard') { loadDashboardStats(); loadRecentScrapes(); } // Refresh stats
       } catch (error) {
         console.error('Error deleting scrape:', error);
         alert(`Error: ${error.message}`);
@@ -805,49 +760,33 @@ async function handleScrapeAction(e) {
   }
 }
 
-// Handle job retry
 async function handleJobRetry(e) {
   const id = e.currentTarget.dataset.id;
-  
   try {
+    // TODO: Update API endpoint if needed
     const response = await fetch(`/api/dashboard/scrape-job/${id}/retry`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${state.token}`
-      },
+      headers: { 'Authorization': `Bearer ${state.token}` },
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to retry job');
-    }
-    
-    // Refresh jobs
-    loadJobs();
+    if (!response.ok) throw new Error('Failed to retry job');
+    loadJobs(); // Refresh jobs table
   } catch (error) {
     console.error('Error retrying job:', error);
     alert(`Error: ${error.message}`);
   }
 }
 
-// Handle job delete
 async function handleJobDelete(e) {
   const id = e.currentTarget.dataset.id;
-  
-  if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+  if (confirm('Are you sure you want to delete this job?')) {
     try {
+      // TODO: Update API endpoint if needed
       const response = await fetch(`/api/dashboard/scrape-job/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${state.token}`
-        },
+        headers: { 'Authorization': `Bearer ${state.token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete job');
-      }
-      
-      // Refresh jobs
-      loadJobs();
+      if (!response.ok) throw new Error('Failed to delete job');
+      loadJobs(); // Refresh jobs table
     } catch (error) {
       console.error('Error deleting job:', error);
       alert(`Error: ${error.message}`);
@@ -855,40 +794,74 @@ async function handleJobDelete(e) {
   }
 }
 
-// Handle transformer apply
+// Placeholder handlers for crawl job actions (New)
+function handleCrawlJobView(e) {
+    const id = e.currentTarget.dataset.id;
+    // TODO: Implement view/details logic for crawl jobs
+    // Maybe open a modal showing job details, options, failed URLs, etc.
+    // Or link to a dedicated results page?
+    alert(`Viewing details for Crawl Job ID: ${id}. (Details view not fully implemented)`);
+    // Example: Fetch details and show in a modal
+    // fetchCrawlJobDetails(id).then(details => showCrawlDetailsModal(details));
+}
+
+async function handleCrawlJobDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    if (confirm('Are you sure you want to delete this crawl job and its associated data?')) {
+        try {
+            // TODO: Update API endpoint if needed
+            const response = await fetch(`/api/dashboard/crawl-job/${id}`, { // Assuming endpoint exists
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${state.token}` },
+            });
+            if (!response.ok) throw new Error('Failed to delete crawl job');
+            loadCrawlJobs(); // Refresh crawl jobs table
+        } catch (error) {
+            console.error('Error deleting crawl job:', error);
+            alert(`Error: ${error.message}`);
+        }
+    }
+}
+
+
 function handleTransformerApply(e) {
   const transformer = e.currentTarget.dataset.transformer;
   alert(`Applying transformer: ${transformer}. This feature is not fully implemented yet.`);
 }
 
-// Helper functions
-// ===============================================
+// --- Helper Functions ---
+function renderPagination(type, dataState) {
+    const totalPages = Math.ceil(dataState.total / dataState.limit);
+    const showingStart = dataState.total === 0 ? 0 : (dataState.page - 1) * dataState.limit + 1;
+    const showingEnd = Math.min(dataState.page * dataState.limit, dataState.total);
 
-// Truncate URL for display
-function truncateUrl(url) {
+    document.getElementById(`${type}-pagination-showing`).textContent = `${showingStart}-${showingEnd}`;
+    document.getElementById(`${type}-pagination-total`).textContent = dataState.total;
+    document.getElementById(`${type}-pagination-current`).textContent = dataState.page;
+
+    document.getElementById(`${type}-pagination-prev`).disabled = dataState.page <= 1;
+    document.getElementById(`${type}-pagination-next`).disabled = dataState.page >= totalPages;
+}
+
+
+function truncateUrl(url, maxLength = 40) {
+  if (!url) return '';
   try {
     const urlObj = new URL(url);
-    const host = urlObj.hostname;
-    const path = urlObj.pathname;
-    
-    // Shorten path if too long
-    const shortenedPath = path.length > 20 ? path.substring(0, 17) + '...' : path;
-    
-    return `${host}${shortenedPath}`;
+    let displayUrl = urlObj.hostname + urlObj.pathname;
+    if (displayUrl.length > maxLength) {
+      return displayUrl.substring(0, maxLength - 3) + '...';
+    }
+    return displayUrl;
   } catch (e) {
-    // If invalid URL, just return the original
-    return url.length > 40 ? url.substring(0, 37) + '...' : url;
+    return url.length > maxLength ? url.substring(0, maxLength - 3) + '...' : url;
   }
 }
 
-// Debounce function for handling frequent events
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
+    const later = () => { timeout = null; func(...args); };
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };

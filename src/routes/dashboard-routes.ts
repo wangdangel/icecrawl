@@ -301,6 +301,41 @@ router.post('/scrape-job/:id/retry', authenticate, DashboardController.retryScra
  */
 router.delete('/scrape-job/:id', authenticate, DashboardController.deleteScrapeJob); // Use controller method
 
+/**
+ * @swagger
+ * /api/dashboard/crawl-jobs:
+ *   get:
+ *     summary: Get crawl jobs
+ *     description: Returns a list of crawl jobs with pagination and status filtering.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, completed, completed_with_errors, failed]
+ *         description: Filter by status
+ *     responses:
+ *       200:
+ *         description: List of crawl jobs
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/crawl-jobs', authenticate, DashboardController.getCrawlJobs); // Use new controller method
+
+// TODO: Add endpoints for deleting/retrying crawl jobs if needed
 
 // Export router
 export default router;

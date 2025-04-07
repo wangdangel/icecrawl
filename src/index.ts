@@ -22,7 +22,8 @@ import exportRoutes from './routes/exportRoutes';
 import transformRoutes from './routes/transformRoutes';
 import dashboardRoutes from './routes/dashboard-routes';
 import healthRoutes from './routes/healthRoutes';
-import viewScrapeRoutes from './routes/viewScrapeRoutes'; // Import the new view scrape routes
+import viewScrapeRoutes from './routes/viewScrapeRoutes';
+import crawlRoutes from './routes/crawlRoutes'; // Import crawl routes
 import { startWorker } from './core/worker'; // Import the worker starter function
 
 // Initialize express app
@@ -113,10 +114,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/scrape', authenticate, scrapeRoutes);
 app.use('/api/transform', authenticate, transformRoutes);
 app.use('/api/export', authenticate, exportRoutes);
+app.use('/api/crawl', authenticate, crawlRoutes); // Mount crawl routes
 // Mount dashboard API routes under /api/dashboard
 app.use('/api/dashboard', authenticate, dashboardRoutes); // Keep authentication for API
 // Mount view scrape routes (remove authentication middleware for direct viewing)
-app.use('/scrape', viewScrapeRoutes); 
+app.use('/scrape', viewScrapeRoutes);
 // REMOVED: Static files for dashboard (Handled by general static middleware now)
 // app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard'), { index: 'index.html' }));
 app.use('/health', healthRoutes);

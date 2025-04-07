@@ -1,0 +1,36 @@
+# Cline Rules/Instructions
+
+## Session Start & Task Initiation
+- At the start of a new session, check available tools and access memory (Cline_Capabilities, MCP_Tools, System_Commands).
+- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
+- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date before proceeding.
+
+## Development Workflow & Consistency
+- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
+- **Organize code into clearly separated modules**, grouped by feature or responsibility.
+- **Use clear, consistent imports** (prefer relative imports within packages/modules where appropriate).
+- Aim to keep individual source code files under approximately 500 lines. If a file significantly exceeds this limit after implementing functionality, consider refactoring (e.g., helper functions, new modules/classes). This is a guideline; prioritize functionality.
+- Update `TASK.md` to reflect task progress (e.g., mark tasks as done, add new sub-tasks).
+
+## Documentation & Explainability
+- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
+- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
+- When writing complex logic, **add an inline `# Reason:` comment** explaining the *why*, not just the *what*.
+
+## AI Behavior Rules
+- **Never assume missing context. Ask questions if uncertain.**
+- **Never hallucinate libraries or functions** – only use known, verified packages/tools.
+- **Always confirm file paths and module names** exist before referencing them in code or tests (e.g., using `list_files`).
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
+
+## Version Control (GitHub)
+- Periodically (e.g., after completing significant tasks or milestones), **prompt the user about backing up work to GitHub**.
+- If the user agrees to push changes:
+    - Stage all relevant changes (`git add .` or specific files).
+    - **Write a thorough and specific commit message** summarizing the changes made.
+    - Push the changes to the remote repository (`git push`).
+
+## Project Management Files
+- **README.md**: General project overview, setup, and usage instructions. *Keep updated.*
+- **PLANNING.md**: Documents high-level vision, architecture, constraints, tech stack, tools, key decisions, coding style, and patterns. *Referenced at the start of conversations.*
+- **TASK.md**: Tracks current tasks, backlog, sub-tasks, and milestones using bullet points. *Checked before starting work and updated as tasks progress.*

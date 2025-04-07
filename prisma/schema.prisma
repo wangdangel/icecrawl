@@ -28,6 +28,7 @@ model ScrapedPage {
   notes      String?
   viewCount  Int       @default(0)
   lastViewed DateTime?
+  markdownContent String? // Added field for Markdown content
 
   @@index([url])
   @@index([userId])
@@ -50,6 +51,7 @@ model User {
   ScrapeJob        ScrapeJob[]
   Dashboard        Dashboard[]
   ApiKey           ApiKey[]
+  crawlJobs        CrawlJob[] // Added relation field for CrawlJob
 }
 
 model Tag {
@@ -111,4 +113,25 @@ model ApiKey {
 
   @@index([userId])
   @@index([key])
+}
+
+model CrawlJob {
+  id           String    @id @default(uuid())
+  startUrl     String
+  status       String // "pending", "processing", "completed", "completed_with_errors", "failed"
+  startTime    DateTime?
+  endTime      DateTime?
+  error        String?
+  userId       String? // Optional reference to the user who created it
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  options      String? // Store job-specific options as JSON string (maxDepth, domainScope)
+  failedUrls   String?   // Store as JSON string because SQLite doesn't support String[]
+  processedUrls Int      @default(0) // Count of successfully processed URLs
+  foundUrls    Int      @default(0) // Count of total URLs found within scope
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
 }

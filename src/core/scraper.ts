@@ -6,6 +6,7 @@ import { CacheService } from '../services/cacheService';
 import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor';
 import { requestPool } from '../utils/requestPool';
 import { httpClient, createHttpClient } from '../utils/httpClient';
+import { BrowserService } from '../services/browserService'; // Import BrowserService
 import { PerformanceMonitor } from '../utils/performance';
 import crypto from 'crypto';
 
@@ -42,19 +43,21 @@ function generateCacheKey(url: string): string {
 export async function scrapeUrl(
   url: string, 
   options: { 
-    useCache?: boolean; 
+    useCache?: boolean;
     cacheTtl?: number;
     timeout?: number;
     retries?: number;
+    useBrowser?: boolean; // Add useBrowser option
   } = {}
 ): Promise<ScrapedData> {
   return PerformanceMonitor.measure('scrape_total', async () => {
     // Default options
-    const { 
-      useCache = true, 
-      cacheTtl, 
-      timeout = 10000,
-      retries = 3
+    const {
+      useCache = true,
+      cacheTtl,
+      timeout = 10000, // Default timeout for HTTP client
+      retries = 3,
+      useBrowser = false, // Default to false
     } = options;
     
     // Generate cache key
@@ -72,21 +75,30 @@ export async function scrapeUrl(
     // Execute the scraping task within the request pool
     return requestPool.add(async () => {
       try {
-        logger.info({ message: 'Starting scrape', url });
-        
-        // Create a custom client for this request if needed
-        const client = (timeout !== 10000 || retries !== 3) 
-          ? createHttpClient({ timeout, retries })
-          : httpClient;
-        
-        // Fetch the HTML content with performance monitoring
-        const response = await PerformanceMonitor.measure(
-          'scrape_fetch', 
-          () => client.get(url),
-          { url }
-        );
-        
-        const html = response.data;
+        logger.info({ message: 'Starting scrape', url, useBrowser });
+
+        let html: string;
+
+        if (useBrowser) {
+          // Use BrowserService for JS-heavy sites
+          html = await PerformanceMonitor.measure(
+            'scrape_browser_fetch',
+            () => BrowserService.scrapeWithBrowser(url, { /* Add browser-specific options if needed */ }),
+            { url }
+          );
+        } else {
+          // Use standard HTTP client
+          const client = (timeout !== 10000 || retries !== 3)
+            ? createHttpClient({ timeout, retries })
+            : httpClient;
+
+          const response = await PerformanceMonitor.measure(
+            'scrape_http_fetch',
+            () => client.get(url),
+            { url }
+          );
+          html = response.data;
+        }
         
         // Parse HTML with performance monitoring
         // Wrap synchronous cheerio.load in Promise.resolve

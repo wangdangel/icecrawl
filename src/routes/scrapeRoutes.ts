@@ -1,12 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client'; // Import PrismaClient
+// Remove local PrismaClient import and import shared instance
+import prisma from '../db/prismaClient'; 
 import { scrapeUrl } from '../core/scraper'; // Keep for potential direct scraping later? Or remove if only jobs are used.
 import { scrapingRateLimiter } from '../middleware/rateLimiter';
 import logger from '../utils/logger'; // Import logger
 
 const router = Router();
-const prisma = new PrismaClient(); // Instantiate PrismaClient
+// Remove local prisma instantiation
 
 // Input validation schemas
 const urlQuerySchema = z.object({

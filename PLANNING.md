@@ -7,7 +7,7 @@ This document outlines the planning for the Web Scraper Dual-Interface project.
 The Web Scraper Dual-Interface is a versatile application designed to function in two distinct modes:
 
 1. **HTTP API Server (Model Context Protocol server)**
-   - Runs on port 6969
+   - Runs on port 6970 (default, configurable via PORT env var)
    - Provides scraping functionality via RESTful endpoints
    - Intended for integration with other applications
    - Returns scraped content in structured JSON format

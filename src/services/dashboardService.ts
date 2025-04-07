@@ -1,4 +1,4 @@
-// Remove local PrismaClient import
+import { Prisma } from '@prisma/client'; // Import Prisma namespace
 import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 
@@ -435,5 +435,63 @@ export class DashboardService {
     }
   }
 
-  // Other dashboard service methods will be added here...
+  /**
+   * Get crawl jobs for a user with pagination and filtering.
+   */
+  static async getCrawlJobs(
+    userId: string,
+    pagination: { page: number; limit: number },
+    filters: { status?: string }
+  ): Promise<{ jobs: any[]; total: number }> { // Use 'any' for now, or import CrawlJob type
+    try {
+      const { page, limit } = pagination;
+      const skip = (page - 1) * limit;
+
+      const where: any = { // Use 'any' type for the where clause
+        userId: userId, // Filter by user
+      };
+
+      if (filters.status) {
+        where.status = filters.status;
+      }
+
+      const [jobs, total] = await prisma.$transaction([
+        prisma.crawlJob.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+          // Select specific fields if needed to optimize payload
+          select: {
+             id: true,
+             startUrl: true,
+             status: true,
+             createdAt: true,
+             startTime: true,
+             endTime: true,
+             processedUrls: true,
+             foundUrls: true,
+             // options: true, // Maybe exclude large options string from list view
+             // failedUrls: true // Maybe exclude large failedUrls string from list view
+          }
+        }),
+        prisma.crawlJob.count({ where }),
+      ]);
+
+      return { jobs, total };
+
+    } catch (error) {
+      logger.error({
+        message: 'Error getting crawl jobs in service',
+        userId,
+        pagination,
+        filters,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Re-throw or return empty state? Returning empty for now.
+      return { jobs: [], total: 0 };
+    }
+  }
+
+  // TODO: Add methods for managing tags, categories, etc. if needed
 }

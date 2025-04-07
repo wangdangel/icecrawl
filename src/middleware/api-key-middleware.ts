@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiKeyService } from '../services/api-key-service.js';
-import logger from '../utils/logger.js';
+// Import the ApiKey interface from the service where it's defined
+import { ApiKeyService, ApiKey } from '../services/api-key-service'; 
+import logger from '../utils/logger';
 
 /**
  * Middleware to authenticate requests using API key
@@ -119,7 +120,7 @@ async function validateAndProcessApiKey(apiKey: string, req: Request, res: Respo
 declare global {
   namespace Express {
     interface Request {
-      apiKey?: any;
+      apiKey?: ApiKey; // Use the imported ApiKey type
     }
   }
 }

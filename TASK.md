@@ -74,6 +74,13 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Add export functionality for different formats
 - [x] Implement proxy support
 - [x] Add authentication for API
+- [ ] Implement Website Crawl-to-Markdown Feature (Added: 2025-04-06)
+    - [x] Define `CrawlJob` model and add `markdownContent` to `ScrapedPage`
+    - [x] Implement Crawler logic (queue, visited, depth, scope)
+    - [x] Implement Markdown conversion service
+    - [x] Enhance Worker to process `CrawlJob`s with retries
+    - [x] Create API endpoints (`POST /api/crawl`, `GET /api/crawl/{jobId}`)
+    - [x] Add basic UI elements to Dashboard for crawl jobs
 
 ### Maintenance
 - [ ] Set up CI/CD pipeline
@@ -91,3 +98,6 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [ ] Consider implementing a web interface
 - [ ] Explore machine learning for content extraction
 - [ ] Research legal and ethical considerations
+
+## Code Review
+- [x] Review the code base (Added: 2025-04-06)

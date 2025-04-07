@@ -358,5 +358,47 @@ export class DashboardController {
     }
   }
 
-  // Other dashboard controller methods will be added here...
+  static async getCrawlJobs(req: Request, res: Response): Promise<Response> {
+    try {
+      // Validate pagination and filter query parameters
+      const querySchema = z.object({
+        page: z.coerce.number().int().min(1).optional().default(1),
+        limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+        status: z.enum(["pending", "processing", "completed", "completed_with_errors", "failed"]).optional(),
+      });
+
+      const parsedQuery = querySchema.safeParse(req.query);
+      if (!parsedQuery.success) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid query parameters',
+          details: parsedQuery.error.format(),
+        });
+      }
+
+      const { page, limit, status } = parsedQuery.data;
+      const userId = req.user!.id; // Assumes authenticate middleware ran
+
+      // Call service layer, passing pagination and filters as objects
+      const result = await DashboardService.getCrawlJobs(userId, { page, limit }, { status });
+
+      return res.json({
+        status: 'success',
+        data: result, // Service should return { jobs: [], pagination: {} }
+      });
+
+    } catch (error) {
+      logger.error({
+        message: 'Error getting crawl jobs for dashboard',
+        userId: req.user?.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return res.status(500).json({
+        status: 'error',
+        message: 'An error occurred while fetching crawl jobs',
+      });
+    }
+  }
+
+  // TODO: Add methods for managing tags, categories, etc. if needed
 }

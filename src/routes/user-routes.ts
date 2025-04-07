@@ -9,87 +9,17 @@ import { AdminUserController } from '../controllers/adminUserController'; // Imp
 
 const router = Router();
 
-// Validation schemas
-// Removed loginSchema - it's now in the controller
-// Removed registerSchema - it's now in the controller
-// Removed updateUserSchema - it's now in the admin controller
+// --- Authentication routes moved to src/routes/authRoutes.ts ---
 
-// Removed passwordChangeSchema - it's now in the controller
-// Removed passwordResetRequestSchema - it's now in the controller
-// Removed passwordResetSchema - it's now in the controller
-
-/**
- * @swagger
- * /api/users/login:
- *   post:
- *     summary: User login
- *     description: Authenticate user and return JWT token
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - username
- *               - password
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *       400:
- *         description: Invalid input
- *       401:
- *         description: Invalid credentials
- */
-router.post('/login', UserController.login); // Use the controller method
-
-/**
- * @swagger
- * /api/users/register:
- *   post:
- *     summary: User registration
- *     description: Register a new user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - username
- *               - password
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       201:
- *         description: User registered successfully
- *       400:
- *         description: Invalid input
- *       409:
- *         description: Username already exists
- */
-router.post('/register', UserController.register); // Use the controller method
+// --- Current User Profile Routes ---
 
 /**
  * @swagger
  * /api/users/me:
  *   get:
- *     summary: Get current user
- *     description: Returns the current authenticated user
- *     tags: [Users]
+ *     summary: Get current user profile
+ *     description: Returns the profile information for the currently authenticated user.
+ *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -104,9 +34,9 @@ router.get('/me', authenticate, UserController.getCurrentUser); // Use the contr
  * @swagger
  * /api/users/me:
  *   put:
- *     summary: Update current user
- *     description: Updates the current authenticated user's information
- *     tags: [Users]
+ *     summary: Update current user profile
+ *     description: Updates the profile information for the currently authenticated user. Allows updating username, password, and email.
+ *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -135,11 +65,11 @@ router.put('/me', authenticate, UserController.updateCurrentUser); // Use the co
 
 /**
  * @swagger
- * /api/users/password:
+ * /api/users/me/password:
  *   post:
- *     summary: Change password
- *     description: Change the authenticated user's password
- *     tags: [Users]
+ *     summary: Change current user password
+ *     description: Allows the currently authenticated user to change their password by providing the current and new password.
+ *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -164,93 +94,17 @@ router.put('/me', authenticate, UserController.updateCurrentUser); // Use the co
  *       401:
  *         description: Incorrect current password
  */
-router.post('/password', authenticate, UserController.changePassword); // Use the controller method
+router.post('/me/password', authenticate, UserController.changePassword); // Use the controller method, updated path
 
-/**
- * @swagger
- * /api/users/password/reset-request:
- *   post:
- *     summary: Request password reset
- *     description: Send a password reset email
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       200:
- *         description: Password reset email sent
- *       400:
- *         description: Invalid input
- */
-router.post('/password/reset-request', UserController.requestPasswordReset); // Use the controller method
-
-/**
- * @swagger
- * /api/users/password/reset:
- *   post:
- *     summary: Reset password
- *     description: Reset password using token from email
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - token
- *               - newPassword
- *             properties:
- *               token:
- *                 type: string
- *               newPassword:
- *                 type: string
- *     responses:
- *       200:
- *         description: Password reset successfully
- *       400:
- *         description: Invalid input
- *       401:
- *         description: Invalid or expired token
- */
-router.post('/password/reset', UserController.resetPassword); // Use the controller method
-
-/**
- * @swagger
- * /api/users/logout:
- *   post:
- *     summary: Logout
- *     description: Invalidate the current session
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Logged out successfully
- *       401:
- *         description: Not authenticated
- */
-router.post('/logout', authenticate, UserController.logout); // Use the controller method
-
-// Admin-only routes
-// ===========================
+// --- Admin User Management Routes ---
 
 /**
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get all users
- *     description: Returns a list of all users (admin only)
- *     tags: [Admin]
+ *     summary: Get all users (Admin)
+ *     description: Returns a paginated list of all users. Requires admin privileges.
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -294,9 +148,9 @@ router.get('/', authenticate, requireAdmin, AdminUserController.getAllUsers); //
  * @swagger
  * /api/users/{id}:
  *   get:
- *     summary: Get user by ID
- *     description: Returns a user by ID (admin only)
- *     tags: [Admin]
+ *     summary: Get user by ID (Admin)
+ *     description: Returns details for a specific user by their ID. Requires admin privileges.
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -322,9 +176,9 @@ router.get('/:id', authenticate, requireAdmin, AdminUserController.getUserById);
  * @swagger
  * /api/users/{id}:
  *   put:
- *     summary: Update user
- *     description: Updates a user (admin only)
- *     tags: [Admin]
+ *     summary: Update user (Admin)
+ *     description: Updates details for a specific user. Allows updating username, password, email, role, and active status. Requires admin privileges.
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -371,9 +225,9 @@ router.put('/:id', authenticate, requireAdmin, AdminUserController.updateUser); 
  * @swagger
  * /api/users/{id}:
  *   delete:
- *     summary: Delete user
- *     description: Deletes a user (admin only)
- *     tags: [Admin]
+ *     summary: Delete user (Admin)
+ *     description: Deactivates or permanently deletes a user. Requires admin privileges. Use `?permanent=true` for permanent deletion.
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:

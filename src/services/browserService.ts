@@ -1,5 +1,5 @@
 import * as puppeteer from 'puppeteer'; // Import as namespace
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
 
 /**
  * Browser service for handling JavaScript-heavy sites
