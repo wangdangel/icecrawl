@@ -1,24 +1,30 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client'; // Remove Tag import
+// Remove local PrismaClient import
+import prisma from '../db/prismaClient'; // Import shared prisma instance
 import logger from '../utils/logger';
 
 const router = Router();
-const prisma = new PrismaClient();
+// Remove local prisma instantiation
 
 // Route to view a single scraped page
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
+  logger.info({ message: `Attempting to view scraped page`, id }); // Log entry
 
   try {
+    logger.debug({ message: `Querying database for scraped page`, id }); // Log before query
     const scrapedPage = await prisma.scrapedPage.findUnique({
       where: { id: id },
       include: { tags: true }, // Include tags if needed
     });
+    logger.debug({ message: `Database query result for scraped page ${id}`, found: !!scrapedPage }); // Log after query
 
     if (!scrapedPage) {
+      logger.warn({ message: `Scraped page not found in database`, id });
       return res.status(404).send('Scraped page not found');
     }
 
+    logger.info({ message: `Rendering scraped page`, id, url: scrapedPage.url });
     // Basic HTML rendering (can be improved with a template engine later)
     let metadataHtml = '<h3>Metadata</h3><pre>No metadata</pre>';
     if (scrapedPage.metadata) {

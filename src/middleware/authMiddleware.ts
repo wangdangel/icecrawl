@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
+// Import AuthService to potentially verify token structure if needed, or just rely on jwt.verify
+// import { AuthService } from '../services/authService'; // Not strictly needed if just verifying
 
 // Get secret key from environment variable or use default (for development only)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
 /**
- * User interface for authentication
+ * User interface for authentication payload within the token
  */
 export interface User {
   id: string;
@@ -18,28 +20,12 @@ export interface User {
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: User; // Keep this declaration for augmenting Request
     }
   }
 }
 
-/**
- * Generate a JWT token for a user
- * 
- * @param user - User to generate token for
- * @returns JWT token
- */
-export function generateToken(user: User): string {
-  return jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
-}
+// REMOVED generateToken - Moved to AuthService
 
 /**
  * Middleware to verify JWT authentication

@@ -1,8 +1,9 @@
-import { PrismaClient } from '@prisma/client'; // Remove ScrapeJob from import
+// Remove local PrismaClient import
+import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 import { scrapeUrl } from './scraper'; // Assuming scrapeUrl handles the actual scraping
 
-const prisma = new PrismaClient();
+// Remove local prisma instantiation
 const POLLING_INTERVAL_MS = 10000; // Check for jobs every 10 seconds
 let isProcessing = false; // Simple lock to prevent overlapping runs
 

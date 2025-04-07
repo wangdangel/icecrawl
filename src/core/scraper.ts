@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
-import { PrismaClient } from '@prisma/client';
+// Remove local PrismaClient import
+import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 import { CacheService } from '../services/cacheService';
 import { extractMainContent, extractMetadata, extractLinks } from '../utils/contentExtractor';
@@ -8,8 +9,7 @@ import { httpClient, createHttpClient } from '../utils/httpClient';
 import { PerformanceMonitor } from '../utils/performance';
 import crypto from 'crypto';
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
+// Remove local prisma instantiation
 
 /**
  * Represents the structure of scraped data

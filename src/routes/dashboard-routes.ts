@@ -1,13 +1,14 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express'; // Added Request, Response back
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+// Remove local PrismaClient import
+import prisma from '../db/prismaClient'; // Import shared instance
 import { authenticate } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
-import path from 'path';
-// import fs from 'fs'; // No longer needed
+// path import not needed currently
+import { DashboardController } from '../controllers/dashboardController'; // Import controller
 
 const router = Router();
-const prisma = new PrismaClient();
+// Remove local prisma instantiation
 
 // REMOVED: Serve dashboard UI (index.html) - This should be handled by express.static in index.ts
 /*
@@ -27,15 +28,8 @@ router.get('/', (req: Request, res: Response) => {
 // ==============================
 
 // Validation schemas
-const paginationSchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val) : 1),
-  limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
-});
-
-const dateRangeSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-});
+// Removed paginationSchema - moved to controller
+// Removed dateRangeSchema - moved to controller
 
 /**
  * @swagger
@@ -63,77 +57,7 @@ const dateRangeSchema = z.object({
  *       401:
  *         description: Not authenticated
  */
-router.get('/recent-scrapes', authenticate, async (req: Request, res: Response) => {
-  try {
-    // Validate pagination params
-    const { page, limit } = paginationSchema.parse(req.query);
-    
-    // Get recent scrapes
-    const [scrapes, total] = await Promise.all([
-      prisma.scrapedPage.findMany({
-        where: {
-          userId: req.user!.id,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-        select: {
-          id: true,
-          url: true,
-          title: true,
-          createdAt: true,
-          isFavorite: true,
-          category: true,
-          viewCount: true,
-          lastViewed: true,
-          tags: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-        },
-      }),
-      prisma.scrapedPage.count({
-        where: {
-          userId: req.user!.id,
-        },
-      }),
-    ]);
-    
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    
-    res.json({
-      status: 'success',
-      data: {
-        scrapes,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      },
-    });
-  } catch (error) {
-    logger.error({
-      message: 'Error getting recent scrapes',
-      userId: req.user?.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while getting recent scrapes',
-    });
-  }
-});
+router.get('/recent-scrapes', authenticate, DashboardController.getRecentScrapes); // Use controller method
 
 /**
  * @swagger
@@ -211,97 +135,7 @@ router.get('/recent-scrapes', authenticate, async (req: Request, res: Response) 
  *       500:
  *         description: Server error
  */
-router.get('/scrapes', authenticate, async (req: Request, res: Response) => {
-  try {
-    // Validate pagination and filter params
-    const querySchema = paginationSchema.extend({
-      search: z.string().optional(),
-      category: z.string().optional(),
-      tag: z.string().optional(), // Assuming tag ID is passed
-    });
-    const { page, limit, search, category, tag } = querySchema.parse(req.query);
-
-    // Build Prisma where clause
-    const where: any = {
-      userId: req.user!.id,
-    };
-    if (search) {
-      where.OR = [
-        { url: { contains: search, mode: 'insensitive' } },
-        { title: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-    if (category) {
-      where.category = category;
-    }
-    if (tag) {
-      // Assuming 'tag' query param is the tag ID
-      where.tags = {
-        some: {
-          id: tag, 
-        },
-      };
-    }
-
-    // Get scrapes and total count
-    const [scrapes, total] = await Promise.all([
-      prisma.scrapedPage.findMany({
-        where,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-        select: { // Select necessary fields
-          id: true,
-          url: true,
-          title: true,
-          createdAt: true,
-          isFavorite: true,
-          category: true,
-          viewCount: true,
-          lastViewed: true,
-          tags: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-        },
-      }),
-      prisma.scrapedPage.count({ where }),
-    ]);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-
-    res.json({
-      status: 'success',
-      data: {
-        scrapes,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      },
-    });
-  } catch (error) {
-    logger.error({
-      message: 'Error getting scrapes',
-      userId: req.user?.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while getting scrapes',
-    });
-  }
-});
+router.get('/scrapes', authenticate, DashboardController.getAllScrapes); // Use controller method
 
 
 /**
@@ -332,102 +166,7 @@ router.get('/scrapes', authenticate, async (req: Request, res: Response) => {
  *       401:
  *         description: Not authenticated
  */
-router.get('/statistics', authenticate, async (req: Request, res: Response) => {
-  try {
-    // Validate date range
-    const { startDate, endDate } = dateRangeSchema.parse(req.query);
-    
-    // Parse dates
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
-    
-    // Get statistics
-    const [totalScrapes, totalFavorites, scrapesByDay, topDomains] = await Promise.all([
-      // Total scrapes
-      prisma.scrapedPage.count({
-        where: {
-          userId: req.user!.id,
-          createdAt: {
-            gte: start,
-            lte: end,
-          },
-        },
-      }),
-      
-      // Total favorites
-      prisma.scrapedPage.count({
-        where: {
-          userId: req.user!.id,
-          isFavorite: true,
-          createdAt: {
-            gte: start,
-            lte: end,
-          },
-        },
-      }),
-      
-      // Scrapes by day
-      prisma.$queryRaw`
-        SELECT 
-          date(createdAt) as date, 
-          COUNT(*) as count 
-        FROM ScrapedPage 
-        WHERE 
-          userId = ${req.user!.id} 
-          AND createdAt >= ${start} 
-          AND createdAt <= ${end} 
-        GROUP BY date(createdAt) 
-        ORDER BY date(createdAt)
-      `,
-      
-      // Top domains
-      prisma.$queryRaw`
-        SELECT 
-          substr(url, instr(url, '://') + 3, 
-            case 
-              when instr(substr(url, instr(url, '://') + 3), '/') = 0 
-              then length(substr(url, instr(url, '://') + 3)) 
-              else instr(substr(url, instr(url, '://') + 3), '/') - 1 
-            end
-          ) as domain, 
-          COUNT(*) as count 
-        FROM ScrapedPage 
-        WHERE 
-          userId = ${req.user!.id} 
-          AND createdAt >= ${start} 
-          AND createdAt <= ${end} 
-        GROUP BY domain 
-        ORDER BY count DESC 
-        LIMIT 5
-      `,
-    ]);
-    
-    res.json({
-      status: 'success',
-      data: {
-        totalScrapes,
-        totalFavorites,
-        scrapesByDay,
-        topDomains,
-        dateRange: {
-          start,
-          end,
-        },
-      },
-    });
-  } catch (error) {
-    logger.error({
-      message: 'Error getting dashboard statistics',
-      userId: req.user?.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while getting dashboard statistics',
-    });
-  }
-});
+router.get('/statistics', authenticate, DashboardController.getStatistics); // Use controller method
 
 /**
  * @swagger
@@ -444,34 +183,7 @@ router.get('/statistics', authenticate, async (req: Request, res: Response) => {
  *       401:
  *         description: Not authenticated
  */
-router.get('/tags', authenticate, async (req: Request, res: Response) => {
-  try {
-    // Get all tags
-    const tags = await prisma.tag.findMany({
-      orderBy: {
-        name: 'asc',
-      },
-    });
-    
-    res.json({
-      status: 'success',
-      data: {
-        tags,
-      },
-    });
-  } catch (error) {
-    logger.error({
-      message: 'Error getting tags',
-      userId: req.user?.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while getting tags',
-    });
-  }
-});
+router.get('/tags', authenticate, DashboardController.getTags); // Use controller method
 
 /**
  * @swagger
@@ -505,66 +217,7 @@ router.get('/tags', authenticate, async (req: Request, res: Response) => {
  *       401:
  *         description: Not authenticated
  */
-router.get('/scrape-jobs', authenticate, async (req: Request, res: Response) => {
-  try {
-    // Validate pagination params
-    const { page, limit } = paginationSchema.parse(req.query);
-    
-    // Build where clause
-    const where: any = {
-      userId: req.user!.id,
-    };
-    
-    // Filter by status if provided
-    if (req.query.status) {
-      where.status = req.query.status;
-    }
-    
-    // Get scrape jobs
-    const [jobs, total] = await Promise.all([
-      prisma.scrapeJob.findMany({
-        where,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-      }),
-      prisma.scrapeJob.count({
-        where,
-      }),
-    ]);
-    
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    
-    res.json({
-      status: 'success',
-      data: {
-        jobs,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      },
-    });
-  } catch (error) {
-    logger.error({
-      message: 'Error getting scrape jobs',
-      userId: req.user?.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while getting scrape jobs',
-    });
-  }
-});
+router.get('/scrape-jobs', authenticate, DashboardController.getScrapeJobs); // Use controller method
 
 /**
  * @swagger
@@ -606,44 +259,7 @@ router.get('/scrape-jobs', authenticate, async (req: Request, res: Response) => 
  *       500:
  *         description: Server error
  */
-router.post('/scrape-job/:id/retry', authenticate, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user!.id;
-
-  try {
-    const job = await prisma.scrapeJob.findUnique({
-      where: { id: id },
-    });
-
-    // Check if job exists and belongs to the user
-    if (!job || job.userId !== userId) {
-      return res.status(404).json({ status: 'error', message: 'Job not found.' });
-    }
-
-    // Check if job is actually failed
-    if (job.status !== 'failed') {
-      return res.status(400).json({ status: 'error', message: 'Only failed jobs can be retried.' });
-    }
-
-    // Update job status to pending
-    await prisma.scrapeJob.update({
-      where: { id: id },
-      data: {
-        status: 'pending',
-        startTime: null, // Reset times and error
-        endTime: null,
-        error: null,
-      },
-    });
-
-    logger.info({ message: `Job ${id} marked for retry`, userId });
-    res.json({ status: 'success', message: 'Job marked for retry.' });
-
-  } catch (error) {
-    logger.error({ message: `Error retrying job ${id}`, userId, error: error instanceof Error ? error.message : 'Unknown error' });
-    res.status(500).json({ status: 'error', message: 'An error occurred while retrying the job.' });
-  }
-});
+router.post('/scrape-job/:id/retry', authenticate, DashboardController.retryScrapeJob); // Use controller method
 
 /**
  * @swagger
@@ -683,38 +299,7 @@ router.post('/scrape-job/:id/retry', authenticate, async (req: Request, res: Res
  *       500:
  *         description: Server error
  */
-router.delete('/scrape-job/:id', authenticate, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user!.id;
-
-  try {
-    // First, verify the job exists and belongs to the user
-    const job = await prisma.scrapeJob.findUnique({
-      where: { id: id },
-      select: { userId: true } // Only select userId for verification
-    });
-
-    if (!job || job.userId !== userId) {
-      return res.status(404).json({ status: 'error', message: 'Job not found.' });
-    }
-
-    // If verification passes, delete the job
-    await prisma.scrapeJob.delete({
-      where: { id: id },
-    });
-
-    logger.info({ message: `Job ${id} deleted`, userId });
-    res.json({ status: 'success', message: 'Job deleted successfully.' });
-
-  } catch (error) {
-    // Handle potential errors, e.g., Prisma errors
-     if (error instanceof Error && (error as any).code === 'P2025') { // Prisma code for record not found
-        return res.status(404).json({ status: 'error', message: 'Job not found.' });
-     }
-    logger.error({ message: `Error deleting job ${id}`, userId, error: error instanceof Error ? error.message : 'Unknown error' });
-    res.status(500).json({ status: 'error', message: 'An error occurred while deleting the job.' });
-  }
-});
+router.delete('/scrape-job/:id', authenticate, DashboardController.deleteScrapeJob); // Use controller method
 
 
 // Export router

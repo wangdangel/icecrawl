@@ -1,8 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+// Remove local PrismaClient import
+import prisma from '../db/prismaClient'; // Import shared instance
 import crypto from 'crypto';
 import logger from '../utils/logger';
 
-const prisma = new PrismaClient();
+// Remove local prisma instantiation
 
 /**
  * API Key interface
