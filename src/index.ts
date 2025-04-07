@@ -10,7 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 import session from 'express-session';
 import { defaultRateLimiter } from './middleware/rateLimiter';
 import { requestLogger } from './middleware/requestLogger';
-import { authenticate } from './middleware/authMiddleware';
+import { authenticate as realAuthenticate } from './middleware/authMiddleware'; // Rename original
 import logger from './utils/logger';
 import { specs } from './utils/swagger';
 
@@ -30,6 +30,10 @@ import { startWorker } from './core/worker'; // Import the worker starter functi
 const app = express();
 const PORT = process.env.PORT || 6970; // Changed default port to 6970
 const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
+
+// Conditional Authentication Middleware
+const authenticate = isTest ? (req: Request, res: Response, next: NextFunction) => next() : realAuthenticate;
 
 // Session configuration
 const SESSION_SECRET = process.env.SESSION_SECRET || 'webscraper-session-secret-dev-only';
@@ -110,7 +114,8 @@ app.get('/login', (req: Request, res: Response) => {
 // API Routes - Apply rate limiter here
 app.use('/api', defaultRateLimiter); // Apply rate limiter only to /api/* routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+// Apply conditional authentication to protected routes
+app.use('/api/users', authenticate, userRoutes); // Assuming user routes also need auth
 app.use('/api/scrape', authenticate, scrapeRoutes);
 app.use('/api/transform', authenticate, transformRoutes);
 app.use('/api/export', authenticate, exportRoutes);

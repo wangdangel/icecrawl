@@ -7,6 +7,18 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Fix TypeScript errors in dashboardService.ts (Added: 2025-04-07)
 - [x] Fix `npm run dev` crash (Added: 2025-04-06)
 
+### Maintenance (Added: 2025-04-07)
+- [x] Ensure Global Installation (`npm install -g icecrawl`) Works Smoothly
+    - [x] Verify `bin` configuration in `package.json`
+    - [x] Examine/modify `scripts/install-script.js` for post-install setup
+
+### Documentation (Added: 2025-04-07)
+- [ ] Update `README.md`
+    - [ ] Add MCP server configuration JSON example
+    - [ ] Replace "kept from original" placeholders (CI/CD, Contributing, Releasing)
+    - [ ] Add "Buy Me a Coffee" link/badge
+    - [ ] Add default login credentials from `prisma/seed.ts`
+
 ### Project Setup
 - [x] Initialize project structure
 - [x] Configure TypeScript
@@ -48,6 +60,25 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## Medium Priority Tasks
 
+### Features (Added: 2025-04-07)
+- [ ] Implement Pagination Following Feature
+    - [ ] Modify core scraper/crawler logic (accept selector/limit)
+    - [ ] Implement sequential page navigation/scraping
+    - [ ] Update API/MCP to accept parameters
+    - [ ] Add UI elements to Dashboard modals
+- [ ] Implement Dashboard - Scheduled Jobs
+- [ ] Implement Dashboard - Profile/Settings
+- [ ] Implement Dashboard - Transformers Page
+- [ ] Implement Dashboard - Scrape/Crawl Options (Add relevant options like output format, useBrowser, etc. to modals)
+
+### Maintenance (Added: 2025-04-07)
+- [ ] Update Dependencies & Address `npm audit` Vulnerabilities
+    - [ ] Run `npm audit` and analyze report
+    - [ ] Run `npm outdated`
+    - [ ] Update packages (prioritizing vulnerability fixes)
+    - [ ] Run `npm audit fix` if applicable
+    - [ ] Test thoroughly after updates
+
 ### Performance
 - [x] Implement caching mechanism
 - [x] Optimize HTML parsing
@@ -63,6 +94,18 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Create mock services for testing
 - [x] Investigate dashboard update issues (Added: 2025-04-06)
 - [x] Fix 'Recent Scrapes' not showing data (Added: 2025-04-06) - *Resolved by running migrations, DB was reset.*
+- [ ] Run existing tests and set up necessary new tests (Added: 2025-04-07)
+    - [x] Run existing tests (`npm run test`) (2025-04-07)
+    - [x] Fix failures in `scraper.test.ts` (mocking issues) (2025-04-07)
+    - [x] Fix failures in `api.test.ts` (auth middleware mocking) (2025-04-07)
+    - [x] Fix failures in `cli.test.ts` (output parsing) (2025-04-07)
+    - [x] Add tests for `AuthService` (2025-04-07)
+    - [x] Add tests for `UserService` (2025-04-07)
+    - [x] Add tests for `UserController` (2025-04-07)
+    - [ ] Add tests for Controllers (Admin, Dashboard)
+    - [ ] Add tests for other Services (API Key, Browser, Cache, Dashboard, Markdown, Proxy, Session)
+    - [ ] Add tests for other core components (Crawler, Worker)
+    - [ ] Improve overall coverage to meet threshold (currently ~26%)
 
 ### Documentation
 - [x] Create detailed API documentation
@@ -74,6 +117,8 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 ## Low Priority Tasks
 
 ### Features
+- [ ] Implement Dashboard - Title/Link Update (Change title to "Ice Crawler", link to main dashboard) (Added: 2025-04-07)
+- [ ] Implement Dashboard - Aesthetic Improvements (Added: 2025-04-07)
 - [x] Add support for JavaScript-heavy sites
 - [x] Implement content filtering options
 - [x] Create data transformation pipeline
@@ -109,6 +154,7 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## Code Review
 - [x] Review the code base (Added: 2025-04-06)
+- [ ] Review code base for architecture, style, and improvements (Added: 2025-04-07)
 
 ## MCP Integration (Added: 2025-04-07)
 

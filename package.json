@@ -30,7 +30,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
     "prepare": "husky install",
-    "postinstall": "prisma migrate dev --name postinstall-setup && npm run prisma:seed",
+    "postinstall": "node scripts/global-postinstall.js",
     "release:major": "standard-version --release-as major",
     "release:minor": "standard-version --release-as minor",
     "release:patch": "standard-version --release-as patch",

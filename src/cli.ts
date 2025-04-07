@@ -18,12 +18,13 @@ program
 
 // Default command (processes stdin/stdout)
 program
-  .action(async (options) => {
+  .action(async () => { // No direct options here, use program.opts()
+    const options = program.opts(); // Get global options
     try {
+      // Only show loading message if not silent
       if (!options.silent) {
         console.error(formatLoading('Reading from stdin'));
       }
-      
       // Read input from stdin
       const input = await getInputFromStdin();
       
@@ -32,11 +33,11 @@ program
       if (!url || !url.startsWith('http')) {
         throw new Error('Invalid URL provided. Please provide a valid URL starting with http:// or https://');
       }
-      
+
+      // Only show loading message if not silent
       if (!options.silent) {
         console.error(formatLoading(`Scraping content from ${url}`));
       }
-      
       // Perform scraping
       const result = await scrapeUrl(url);
       
@@ -55,15 +56,18 @@ program
 program
   .command('url <url>')
   .description('Scrape a specific URL')
-  .action(async (url: string, options) => {
+  .action(async (url: string) => { // No direct options here, use program.opts()
+    const options = program.opts(); // Get global options
     try {
+      // Only show loading message if not silent
       if (!options.silent) {
         console.error(formatLoading(`Scraping content from ${url}`));
       }
-      
       const result = await scrapeUrl(url);
-      console.log(formatScrapedData(result, options.format));
+      // Use global format option
+      console.log(formatScrapedData(result, options.format)); 
     } catch (error) {
+      const options = program.opts(); // Get global options again for catch block
       if (!options.silent) {
         console.error(formatError(error instanceof Error ? error : new Error('An unknown error occurred')));
       }

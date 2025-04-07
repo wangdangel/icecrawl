@@ -11,7 +11,7 @@ interface PaginationOptions {
 
 // This interface accurately reflects the selection in getRecentScrapes and getAllScrapes
 // It's good practice to define return types clearly.
-interface RecentScrapeOutput {
+export interface RecentScrapeOutput { // Added export
   id: string;
   url: string;
   title: string | null;
@@ -29,7 +29,7 @@ interface RecentScrapeOutput {
 
 // Define a type for the selected fields in getCrawlJobs for better type safety
 // Excludes potentially large fields like 'options' and 'failedUrls' for list views
-type CrawlJobSummary = Pick<
+export type CrawlJobSummary = Pick< // Added export
   CrawlJob,
   | 'id'
   | 'startUrl'
@@ -42,7 +42,7 @@ type CrawlJobSummary = Pick<
 >;
 
 // Define a type for the tag output
-type TagOutput = Pick<Tag, 'id' | 'name' | 'color'>;
+export type TagOutput = Pick<Tag, 'id' | 'name' | 'color'>; // Added export
 
 export class DashboardService {
   /**
