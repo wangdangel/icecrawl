@@ -57,6 +57,7 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Add CLI tests
 - [x] Implement test coverage reporting
 - [x] Create mock services for testing
+- [x] Investigate dashboard update issues (Added: 2025-04-06)
 
 ### Documentation
 - [x] Create detailed API documentation

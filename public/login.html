@@ -28,7 +28,7 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('/api/users/login', { // Corrected API path
+            const response = await fetch('/api/auth/login', { // Corrected API path to /api/auth/login
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

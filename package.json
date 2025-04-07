@@ -58,6 +58,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.565.0",
     "@prisma/client": "^5.11.0",

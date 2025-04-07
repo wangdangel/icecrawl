@@ -189,13 +189,23 @@ export class DashboardService {
   ): Promise<{
     totalScrapes: number;
     totalFavorites: number;
-    scrapesByDay: any; // Type based on raw query result
-    topDomains: any;   // Type based on raw query result
+    scrapesByDay: Array<{ date: string; count: number }>;
+    topDomains: Array<{ domain: string; count: number }>;
+    scrapeJobStats: { pending: number; failed: number };
+    crawlJobStats: { pending: number; failed: number };
   }> {
     const { start, end } = dateRange;
     try {
-      const [totalScrapes, totalFavorites, scrapesByDay, topDomains] = await Promise.all([
-        // Total scrapes
+      // Use Prisma.$transaction for atomicity if needed, but Promise.all is fine for reads
+      const [
+        totalScrapes,
+        totalFavorites,
+        scrapesByDayResult, // Rename result variable
+        topDomainsResult,   // Rename result variable
+        scrapeJobStatsResult, // Add query for scrape job stats
+        crawlJobStatsResult   // Add query for crawl job stats
+      ] = await Promise.all([
+        // Total scrapes (within date range)
         prisma.scrapedPage.count({
           where: {
             userId: userId,
@@ -224,9 +234,9 @@ export class DashboardService {
             AND createdAt <= ${end}
           GROUP BY date
           ORDER BY date
-        `,
+        `, // Removed type assertion
 
-        // Top domains (using raw query)
+        // Top domains (within date range)
         prisma.$queryRaw`
           SELECT
             substr(url, instr(url, '://') + 3,
@@ -245,10 +255,91 @@ export class DashboardService {
           GROUP BY domain
           ORDER BY count DESC
           LIMIT 5
-        `,
+        `, // Removed type assertion
+
+        // Scrape Job Stats (Pending/Failed - typically not date-bound)
+        prisma.scrapeJob.groupBy({
+          by: ['status'],
+          where: {
+            userId: userId,
+            status: { in: ['pending', 'failed'] },
+            // Optionally filter by date range if needed:
+            // createdAt: { gte: start, lte: end },
+          },
+          _count: {
+            status: true,
+          },
+        }),
+
+        // Crawl Job Stats (Pending/Failed - typically not date-bound)
+        prisma.crawlJob.groupBy({
+          by: ['status'],
+          where: {
+            userId: userId,
+            status: { in: ['pending', 'failed'] },
+            // Optionally filter by date range if needed:
+            // createdAt: { gte: start, lte: end },
+          },
+          _count: {
+            status: true,
+          },
+        }),
       ]);
 
-      return { totalScrapes, totalFavorites, scrapesByDay, topDomains };
+      // --- Start Debug Logging ---
+      logger.debug({
+        message: 'Raw statistics results',
+        userId,
+        totalScrapes,
+        totalFavorites,
+        scrapesByDayResult,
+        topDomainsResult,
+        scrapeJobStatsResult,
+        crawlJobStatsResult,
+      });
+      // --- End Debug Logging ---
+
+      // Define the expected type for groupBy results
+      type JobStatResult = { status: string; _count: { status: number } };
+
+      let scrapeJobStats = { pending: 0, failed: 0 };
+      let crawlJobStats = { pending: 0, failed: 0 };
+
+      try {
+        // Process job stats results
+        scrapeJobStats = {
+          pending: scrapeJobStatsResult.find((s: JobStatResult) => s.status === 'pending')?._count.status || 0,
+          failed: scrapeJobStatsResult.find((s: JobStatResult) => s.status === 'failed')?._count.status || 0,
+        };
+        crawlJobStats = {
+          pending: crawlJobStatsResult.find((s: JobStatResult) => s.status === 'pending')?._count.status || 0,
+          failed: crawlJobStatsResult.find((s: JobStatResult) => s.status === 'failed')?._count.status || 0,
+        };
+      } catch (processingError) {
+        logger.error({
+          message: 'Error processing job statistics results',
+          userId,
+          scrapeJobStatsResult,
+          crawlJobStatsResult,
+          error: processingError instanceof Error ? processingError.message : 'Unknown processing error',
+        });
+        // Depending on requirements, either throw or return default/partial stats
+        throw new Error('Failed to process job statistics.');
+      }
+
+      // Ensure raw query results are arrays before returning
+      const scrapesByDay = Array.isArray(scrapesByDayResult) ? scrapesByDayResult : [];
+      const topDomains = Array.isArray(topDomainsResult) ? topDomainsResult : [];
+
+
+      return {
+        totalScrapes,
+        totalFavorites,
+        scrapesByDay: scrapesByDay, // Use processed variable
+        topDomains: topDomains,     // Use processed variable
+        scrapeJobStats,
+        crawlJobStats,
+      };
 
     } catch (error) {
       logger.error({

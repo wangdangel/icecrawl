@@ -160,12 +160,12 @@ export class Crawler {
     while (this.queue.length > 0) {
       // # Reason: Process queue in batches matching the default request pool concurrency (5).
       const batchSize = 5; // Use the default concurrency of the requestPool
-      const batch = this.queue.splice(0, batchSize); 
+      const batch = this.queue.splice(0, batchSize);
       const promises = batch.map(item => this.processPage(item.url, item.depth));
       await Promise.all(promises); // Wait for the batch to complete
 
-      // Optional: Update progress periodically if needed
-      // await this.updateJobProgress();
+      // Update progress after each batch
+      await this.updateJobStatus('processing'); // Update counts while still processing
     }
 
     logger.info({ message: 'Main crawl phase completed', jobId: this.job.id, processed: this.processedCount, found: this.foundCount });

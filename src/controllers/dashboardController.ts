@@ -380,11 +380,24 @@ export class DashboardController {
       const userId = req.user!.id; // Assumes authenticate middleware ran
 
       // Call service layer, passing pagination and filters as objects
-      const result = await DashboardService.getCrawlJobs(userId, { page, limit }, { status });
+      const { jobs, total } = await DashboardService.getCrawlJobs(userId, { page, limit }, { status });
+
+      // Calculate pagination info
+      const totalPages = Math.ceil(total / limit);
 
       return res.json({
         status: 'success',
-        data: result, // Service should return { jobs: [], pagination: {} }
+        data: {
+          jobs,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+          },
+        },
       });
 
     } catch (error) {
