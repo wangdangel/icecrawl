@@ -1,6 +1,6 @@
 {
   "name": "icecrawl",
-  "version": "0.3.2",
+  "version": "0.3.6",
   "description": "Web scraping application with HTTP API (incl. Dashboard), CLI, and MCP Server interfaces.",
   "main": "dist/index.js",
   "bin": {
@@ -11,7 +11,8 @@
     "dist",
     "README.md",
     "LICENSE",
-    "package.json"
+    "package.json",
+    "scripts"
   ],
   "scripts": {
     "build": "tsc",
