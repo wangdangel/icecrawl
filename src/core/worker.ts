@@ -95,11 +95,11 @@ async function processScrapeJob(job: any) { // Use 'any' or rely on inference
     const useBrowser = jobOptions?.useBrowser || false;
     const category = jobOptions?.category; // Keep category/notes for saving
     const notes = jobOptions?.notes;
-
-    // Perform the actual scraping, passing options correctly
-    const scrapedData = await scrapeUrl(job.url, { useBrowser });
-
-    // Save the scraped data to ScrapedPage
+ 
+     // Perform the actual scraping, passing options and userId correctly
+     const scrapedData = await scrapeUrl(job.url, { useBrowser }, job.userId); // Pass userId here
+ 
+     // Save the scraped data to ScrapedPage
     // Ensure metadata is stringified if it's an object
     const metadataString = typeof scrapedData.metadata === 'object' 
       ? JSON.stringify(scrapedData.metadata)

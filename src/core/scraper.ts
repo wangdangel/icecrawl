@@ -38,17 +38,19 @@ function generateCacheKey(url: string): string {
  * 
  * @param url - The URL to scrape
  * @param options - Scraping options
+ * @param userId - Optional ID of the user initiating the scrape (for DB association)
  * @returns Promise resolving to the scraped data
  */
 export async function scrapeUrl(
-  url: string, 
-  options: { 
+  url: string,
+  options: {
     useCache?: boolean;
     cacheTtl?: number;
     timeout?: number;
     retries?: number;
     useBrowser?: boolean; // Add useBrowser option
-  } = {}
+  } = {},
+  userId: string | null = null // Add userId parameter
 ): Promise<ScrapedData> {
   return PerformanceMonitor.measure('scrape_total', async () => {
     // Default options
@@ -160,10 +162,10 @@ export async function scrapeUrl(
           );
         }
         
-        // Store in database with performance monitoring (storeScrapedData is already async)
+        // Store in database with performance monitoring, passing userId
         await PerformanceMonitor.measure(
           'scrape_db',
-          () => storeScrapedData(scrapedData),
+          () => storeScrapedData(scrapedData, userId), // Pass userId here
           { url }
         );
         
@@ -186,11 +188,15 @@ export async function scrapeUrl(
 }
 
 /**
- * Stores the scraped data in the database
+ * Stores the scraped data in the database, associating it with a user.
  * 
  * @param data - The scraped data to store
+ * @param userId - The ID of the user associated with this scrape (can be null)
  */
-async function storeScrapedData(data: ScrapedData): Promise<void> {
+async function storeScrapedData(data: ScrapedData, userId: string | null): Promise<void> {
+  // Ensure userId is not undefined, default to null if necessary
+  const finalUserId = userId === undefined ? null : userId;
+
   try {
     await prisma.scrapedPage.upsert({
       where: { url: data.url },
@@ -205,6 +211,7 @@ async function storeScrapedData(data: ScrapedData): Promise<void> {
         title: data.title,
         content: data.content,
         metadata: JSON.stringify(data.metadata),
+        userId: finalUserId, // Associate with user on creation
       },
     });
     

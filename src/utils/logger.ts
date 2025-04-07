@@ -35,11 +35,13 @@ const logger = winston.createLogger({
 });
 
 // If we're not in production, also log to the console
+// If we're not in production, also log to the console with JSON format
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
+      winston.format.timestamp(), // Add timestamp to console
+      winston.format.errors({ stack: true }), // Ensure errors are logged properly
+      winston.format.json() // Use JSON format for console as well
     ),
   }));
 }

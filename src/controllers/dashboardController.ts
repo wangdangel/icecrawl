@@ -154,12 +154,43 @@ export class DashboardController {
       const { startDate, endDate } = validationResult.data;
       const userId = req.user!.id;
 
-      // Parse dates or set defaults
-      const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30)); // Default to last 30 days
-      const end = endDate ? new Date(endDate) : new Date(); // Default to now
+      // Calculate date range, ensuring UTC boundaries
+      let end: Date;
+      if (endDate) {
+        end = new Date(endDate);
+        // Set to end of the selected day in UTC
+        end.setUTCHours(23, 59, 59, 999);
+      } else {
+        end = new Date(); // Use current time as end (implicitly UTC via Prisma)
+      }
 
-      // Get statistics from service
+      let start: Date;
+      if (startDate) {
+        start = new Date(startDate);
+        // Set to start of the selected day in UTC
+        start.setUTCHours(0, 0, 0, 0);
+      } else {
+        // Default to 30 days ago, start of that day in UTC
+        start = new Date(end); // Start from end date
+        start.setUTCDate(start.getUTCDate() - 30);
+        start.setUTCHours(0, 0, 0, 0);
+      }
+
+      // Log the exact parameters being sent to the service (using INFO level)
+      logger.info({
+        message: '[INFO] Calling DashboardService.getStatistics with parameters', // Added [INFO] prefix for clarity
+        userId,
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      });
+
+      // Get statistics from service using the calculated UTC-based range
       const stats = await DashboardService.getStatistics(userId, { start, end });
+
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache'); // For older HTTP/1.0 proxies
+      res.setHeader('Expires', '0'); // Expire immediately
 
       return res.json({
         status: 'success',

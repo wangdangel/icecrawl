@@ -263,8 +263,8 @@ export class DashboardService {
           where: {
             userId: userId,
             status: { in: ['pending', 'failed'] },
-            // Optionally filter by date range if needed:
-            // createdAt: { gte: start, lte: end },
+            // Filter by date range:
+            createdAt: { gte: start, lte: end },
           },
           _count: {
             status: true,
@@ -277,8 +277,8 @@ export class DashboardService {
           where: {
             userId: userId,
             status: { in: ['pending', 'failed'] },
-            // Optionally filter by date range if needed:
-            // createdAt: { gte: start, lte: end },
+            // Filter by date range:
+            createdAt: { gte: start, lte: end },
           },
           _count: {
             status: true,
@@ -331,9 +331,22 @@ export class DashboardService {
       const scrapesByDay = Array.isArray(scrapesByDayResult) ? scrapesByDayResult : [];
       const topDomains = Array.isArray(topDomainsResult) ? topDomainsResult : [];
 
+      // --- Start Debug Logging ---
+      logger.debug({
+        message: 'Dashboard Statistics Calculation Details',
+        userId,
+        startDateUsed: start.toISOString(),
+        endDateUsed: end.toISOString(),
+        calculatedTotalScrapes: totalScrapes, // Log the value from Prisma
+        calculatedTotalFavorites: totalFavorites,
+        calculatedScrapeJobStats: scrapeJobStats,
+        calculatedCrawlJobStats: crawlJobStats,
+      });
+      // --- End Debug Logging ---
+
 
       return {
-        totalScrapes,
+        totalScrapes, // Return the logged value
         totalFavorites,
         scrapesByDay: scrapesByDay, // Use processed variable
         topDomains: topDomains,     // Use processed variable

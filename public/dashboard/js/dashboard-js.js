@@ -30,6 +30,8 @@ const state = {
 
 // Global variable to hold the chart instance
 let activityChartInstance = null;
+// Global variable for dashboard refresh interval
+let dashboardRefreshInterval = null;
 
 // --- DOM Element References ---
 let navDashboard, navScrapes, navJobs, navCrawlJobs, navTransformers;
@@ -222,26 +224,44 @@ function loadDataForCurrentPage() {
 
 // Load dashboard statistics
 async function loadDashboardStats() {
+  console.log('Attempting to load dashboard stats...'); // Log start
   try {
+    // Removed cache: 'no-store' - relying on backend headers now
     const response = await fetch('/api/dashboard/statistics', {
       headers: { 'Authorization': `Bearer ${state.token}` }
+      // cache: 'no-store' // Removed this line
     });
     if (!response.ok) throw new Error('Failed to load dashboard statistics');
     const result = await response.json();
     if (result.status === 'success') {
+      // Log before update
+      console.log('Before update - Total Scrapes:', document.getElementById('stat-total-scrapes').textContent);
+      console.log('Before update - Favorites:', document.getElementById('stat-favorites').textContent);
+      console.log('Before update - Pending Jobs:', document.getElementById('stat-pending-jobs').textContent);
+      console.log('Before update - Failed Jobs:', document.getElementById('stat-failed-jobs').textContent);
+
+      // Update elements
       document.getElementById('stat-total-scrapes').textContent = result.data.totalScrapes;
       document.getElementById('stat-favorites').textContent = result.data.totalFavorites;
       const pendingJobs = (result.data.scrapeJobStats?.pending || 0) + (result.data.crawlJobStats?.pending || 0);
       const failedJobs = (result.data.scrapeJobStats?.failed || 0) + (result.data.crawlJobStats?.failed || 0);
       document.getElementById('stat-pending-jobs').textContent = pendingJobs;
       document.getElementById('stat-failed-jobs').textContent = failedJobs;
+
+      // Log after update
+      console.log('After update - Total Scrapes:', document.getElementById('stat-total-scrapes').textContent);
+      console.log('After update - Favorites:', document.getElementById('stat-favorites').textContent);
+      console.log('After update - Pending Jobs:', document.getElementById('stat-pending-jobs').textContent);
+      console.log('After update - Failed Jobs:', document.getElementById('stat-failed-jobs').textContent);
+
       createActivityChart(result.data.scrapesByDay);
       renderTopDomains(result.data.topDomains);
+      console.log('Successfully loaded and updated dashboard stats.'); // Log success
     } else {
-      console.error('Error loading dashboard statistics:', result.message);
+      console.error('API Error loading dashboard statistics:', result.message); // More specific error
     }
   } catch (error) {
-    console.error('Error loading dashboard statistics:', error);
+    console.error('Fetch Error loading dashboard statistics:', error); // More specific error
   }
 }
 
@@ -598,6 +618,13 @@ function renderTransformers(transformers) {
 
 // --- Page Switching ---
 function switchPage(page) {
+  // Clear existing refresh interval if navigating away from dashboard
+  if (state.activePage === 'dashboard' && page !== 'dashboard') {
+    if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+    dashboardRefreshInterval = null;
+    console.log('Cleared dashboard refresh interval.'); // Debug log
+  }
+
   // Hide all pages
   pageDashboard.classList.add('hidden');
   pageScrapes.classList.add('hidden');
@@ -633,6 +660,12 @@ function switchPage(page) {
 
   // Load page-specific data
   loadDataForCurrentPage();
+
+  // Set up refresh interval if navigating to dashboard
+  if (page === 'dashboard' && !dashboardRefreshInterval) {
+    dashboardRefreshInterval = setInterval(loadDashboardStats, 30000); // Refresh every 30 seconds
+    console.log('Set dashboard refresh interval.'); // Debug log
+  }
 }
 
 // --- UI Interaction ---
@@ -641,6 +674,10 @@ function toggleUserMenu() {
 }
 
 function logout() {
+  // Clear refresh interval on logout
+  if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+  dashboardRefreshInterval = null;
+
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   window.location.href = '/login';
