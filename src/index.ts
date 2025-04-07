@@ -22,6 +22,8 @@ import exportRoutes from './routes/exportRoutes';
 import transformRoutes from './routes/transformRoutes';
 import dashboardRoutes from './routes/dashboard-routes';
 import healthRoutes from './routes/healthRoutes';
+import viewScrapeRoutes from './routes/viewScrapeRoutes'; // Import the new view scrape routes
+import { startWorker } from './core/worker'; // Import the worker starter function
 
 // Initialize express app
 const app = express();
@@ -112,7 +114,9 @@ app.use('/api/scrape', authenticate, scrapeRoutes);
 app.use('/api/transform', authenticate, transformRoutes);
 app.use('/api/export', authenticate, exportRoutes);
 // Mount dashboard API routes under /api/dashboard
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/dashboard', authenticate, dashboardRoutes); // Keep authentication for API
+// Mount view scrape routes (remove authentication middleware for direct viewing)
+app.use('/scrape', viewScrapeRoutes); 
 // REMOVED: Static files for dashboard (Handled by general static middleware now)
 // app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard'), { index: 'index.html' }));
 app.use('/health', healthRoutes);
@@ -144,6 +148,9 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`Web Scraper server running at http://localhost:${PORT}`);
     logger.info(`Dashboard UI available at http://localhost:${PORT}/dashboard`);
     logger.info(`API documentation available at http://localhost:${PORT}/api-docs`);
+    
+    // Start the background worker after the server starts
+    startWorker(); 
   });
 }
 

@@ -22,6 +22,9 @@ const state = {
   }
 };
 
+// Global variable to hold the chart instance
+let activityChartInstance = null;
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
   // Check authentication
@@ -216,6 +219,11 @@ async function loadDashboardStats() {
 
 // Create activity chart
 function createActivityChart(data) {
+  // Destroy existing chart instance if it exists
+  if (activityChartInstance) {
+    activityChartInstance.destroy();
+  }
+
   const ctx = document.getElementById('scraping-activity-chart').getContext('2d');
   
   // Format dates and prepare data
@@ -227,8 +235,8 @@ function createActivityChart(data) {
     values.push(item.count);
   });
   
-  // Create chart
-  new Chart(ctx, {
+  // Create chart and store the instance
+  const newChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
@@ -268,6 +276,7 @@ function createActivityChart(data) {
       }
     }
   });
+  activityChartInstance = newChart; // Assign the created chart to the global instance
 }
 
 // Load recent scrapes
@@ -711,8 +720,8 @@ async function submitNewScrape() {
     if (result.status === 'success') {
       hideNewScrapeModal();
       
-      // Show success message
-      alert('Scrape job submitted successfully');
+      // Show success message (updated)
+      alert('Scrape job submitted successfully. You can track its status on the Jobs page.');
       
       // Refresh data
       if (state.activePage === 'dashboard') {

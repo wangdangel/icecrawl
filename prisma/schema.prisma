@@ -77,6 +77,7 @@ model ScrapeJob {
   scheduledFor DateTime?
   isRecurring  Boolean   @default(false)
   schedule     String? // Cron expression for recurring jobs
+  options      String? // Store job-specific options as JSON string
 
   @@index([status])
   @@index([userId])

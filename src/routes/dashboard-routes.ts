@@ -63,7 +63,7 @@ const dateRangeSchema = z.object({
  *       401:
  *         description: Not authenticated
  */
-router.get('/api/recent-scrapes', authenticate, async (req: Request, res: Response) => {
+router.get('/recent-scrapes', authenticate, async (req: Request, res: Response) => {
   try {
     // Validate pagination params
     const { page, limit } = paginationSchema.parse(req.query);
@@ -137,6 +137,175 @@ router.get('/api/recent-scrapes', authenticate, async (req: Request, res: Respon
 
 /**
  * @swagger
+ * /api/dashboard/scrapes:
+ *   get:
+ *     summary: Get all scrapes with pagination and filtering
+ *     description: Returns a paginated list of scrapes, optionally filtered by search term, category, or tag.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter by URL or title
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Category to filter by
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string # Assuming tag ID is passed as string
+ *         description: Tag ID to filter by
+ *     responses:
+ *       200:
+ *         description: A paginated list of scrapes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     scrapes:
+ *                       type: array
+ *                       items:
+ *                         # Define scrape item structure here or reference a schema
+ *                         type: object 
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Server error
+ */
+router.get('/scrapes', authenticate, async (req: Request, res: Response) => {
+  try {
+    // Validate pagination and filter params
+    const querySchema = paginationSchema.extend({
+      search: z.string().optional(),
+      category: z.string().optional(),
+      tag: z.string().optional(), // Assuming tag ID is passed
+    });
+    const { page, limit, search, category, tag } = querySchema.parse(req.query);
+
+    // Build Prisma where clause
+    const where: any = {
+      userId: req.user!.id,
+    };
+    if (search) {
+      where.OR = [
+        { url: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (category) {
+      where.category = category;
+    }
+    if (tag) {
+      // Assuming 'tag' query param is the tag ID
+      where.tags = {
+        some: {
+          id: tag, 
+        },
+      };
+    }
+
+    // Get scrapes and total count
+    const [scrapes, total] = await Promise.all([
+      prisma.scrapedPage.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+        select: { // Select necessary fields
+          id: true,
+          url: true,
+          title: true,
+          createdAt: true,
+          isFavorite: true,
+          category: true,
+          viewCount: true,
+          lastViewed: true,
+          tags: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          },
+        },
+      }),
+      prisma.scrapedPage.count({ where }),
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      status: 'success',
+      data: {
+        scrapes,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error({
+      message: 'Error getting scrapes',
+      userId: req.user?.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while getting scrapes',
+    });
+  }
+});
+
+
+/**
+ * @swagger
  * /api/dashboard/statistics:
  *   get:
  *     summary: Get dashboard statistics
@@ -163,7 +332,7 @@ router.get('/api/recent-scrapes', authenticate, async (req: Request, res: Respon
  *       401:
  *         description: Not authenticated
  */
-router.get('/api/statistics', authenticate, async (req: Request, res: Response) => {
+router.get('/statistics', authenticate, async (req: Request, res: Response) => {
   try {
     // Validate date range
     const { startDate, endDate } = dateRangeSchema.parse(req.query);
@@ -275,7 +444,7 @@ router.get('/api/statistics', authenticate, async (req: Request, res: Response) 
  *       401:
  *         description: Not authenticated
  */
-router.get('/api/tags', authenticate, async (req: Request, res: Response) => {
+router.get('/tags', authenticate, async (req: Request, res: Response) => {
   try {
     // Get all tags
     const tags = await prisma.tag.findMany({
@@ -336,7 +505,7 @@ router.get('/api/tags', authenticate, async (req: Request, res: Response) => {
  *       401:
  *         description: Not authenticated
  */
-router.get('/api/scrape-jobs', authenticate, async (req: Request, res: Response) => {
+router.get('/scrape-jobs', authenticate, async (req: Request, res: Response) => {
   try {
     // Validate pagination params
     const { page, limit } = paginationSchema.parse(req.query);
@@ -396,6 +565,157 @@ router.get('/api/scrape-jobs', authenticate, async (req: Request, res: Response)
     });
   }
 });
+
+/**
+ * @swagger
+ * /api/dashboard/scrape-job/{id}/retry:
+ *   post:
+ *     summary: Retry a failed scrape job
+ *     description: Resets the status of a failed scrape job to 'pending' so it can be retried by the worker.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The ID of the scrape job to retry
+ *     responses:
+ *       200:
+ *         description: Job successfully marked for retry
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Job marked for retry.
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Job not found or not associated with the user
+ *       400:
+ *         description: Job is not in a failed state
+ *       500:
+ *         description: Server error
+ */
+router.post('/scrape-job/:id/retry', authenticate, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user!.id;
+
+  try {
+    const job = await prisma.scrapeJob.findUnique({
+      where: { id: id },
+    });
+
+    // Check if job exists and belongs to the user
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ status: 'error', message: 'Job not found.' });
+    }
+
+    // Check if job is actually failed
+    if (job.status !== 'failed') {
+      return res.status(400).json({ status: 'error', message: 'Only failed jobs can be retried.' });
+    }
+
+    // Update job status to pending
+    await prisma.scrapeJob.update({
+      where: { id: id },
+      data: {
+        status: 'pending',
+        startTime: null, // Reset times and error
+        endTime: null,
+        error: null,
+      },
+    });
+
+    logger.info({ message: `Job ${id} marked for retry`, userId });
+    res.json({ status: 'success', message: 'Job marked for retry.' });
+
+  } catch (error) {
+    logger.error({ message: `Error retrying job ${id}`, userId, error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ status: 'error', message: 'An error occurred while retrying the job.' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/dashboard/scrape-job/{id}:
+ *   delete:
+ *     summary: Delete a scrape job
+ *     description: Deletes a specific scrape job.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The ID of the scrape job to delete
+ *     responses:
+ *       200:
+ *         description: Job successfully deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Job deleted successfully.
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Job not found or not associated with the user
+ *       500:
+ *         description: Server error
+ */
+router.delete('/scrape-job/:id', authenticate, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user!.id;
+
+  try {
+    // First, verify the job exists and belongs to the user
+    const job = await prisma.scrapeJob.findUnique({
+      where: { id: id },
+      select: { userId: true } // Only select userId for verification
+    });
+
+    if (!job || job.userId !== userId) {
+      return res.status(404).json({ status: 'error', message: 'Job not found.' });
+    }
+
+    // If verification passes, delete the job
+    await prisma.scrapeJob.delete({
+      where: { id: id },
+    });
+
+    logger.info({ message: `Job ${id} deleted`, userId });
+    res.json({ status: 'success', message: 'Job deleted successfully.' });
+
+  } catch (error) {
+    // Handle potential errors, e.g., Prisma errors
+     if (error instanceof Error && (error as any).code === 'P2025') { // Prisma code for record not found
+        return res.status(404).json({ status: 'error', message: 'Job not found.' });
+     }
+    logger.error({ message: `Error deleting job ${id}`, userId, error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ status: 'error', message: 'An error occurred while deleting the job.' });
+  }
+});
+
 
 // Export router
 export default router;
