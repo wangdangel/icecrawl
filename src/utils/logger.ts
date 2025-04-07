@@ -34,9 +34,12 @@ const logger = winston.createLogger({
   ],
 });
 
-// If we're not in production, also log to the console
-// If we're not in production, also log to the console with JSON format
-if (process.env.NODE_ENV !== 'production') {
+// Determine if the current process is running the CLI entry point
+const scriptPath = process.argv[1]; // Get the path of the executed script
+const isCliProcess = scriptPath && (scriptPath.endsWith('cli.ts') || scriptPath.endsWith('cli.js'));
+
+// If we're not in production AND it's not the CLI process, log to the console with JSON format
+if (process.env.NODE_ENV !== 'production' && !isCliProcess) {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
       winston.format.timestamp(), // Add timestamp to console

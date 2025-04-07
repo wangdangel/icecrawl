@@ -1,16 +1,17 @@
-import { Prisma } from '@prisma/client'; // Import Prisma namespace
+import { Prisma, ScrapedPage, ScrapeJob, CrawlJob, Tag } from '@prisma/client'; // Import Prisma namespace and specific types
 import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 
-// Remove local prisma instantiation
-
 // Define interfaces for data structures if needed, or import from shared types
+// Consider moving these to a shared types file if used elsewhere
 interface PaginationOptions {
   page: number;
   limit: number;
 }
 
-interface RecentScrape {
+// This interface accurately reflects the selection in getRecentScrapes and getAllScrapes
+// It's good practice to define return types clearly.
+interface RecentScrapeOutput {
   id: string;
   url: string;
   title: string | null;
@@ -26,6 +27,23 @@ interface RecentScrape {
   }>;
 }
 
+// Define a type for the selected fields in getCrawlJobs for better type safety
+// Excludes potentially large fields like 'options' and 'failedUrls' for list views
+type CrawlJobSummary = Pick<
+  CrawlJob,
+  | 'id'
+  | 'startUrl'
+  | 'status'
+  | 'createdAt'
+  | 'startTime'
+  | 'endTime'
+  | 'processedUrls'
+  | 'foundUrls'
+>;
+
+// Define a type for the tag output
+type TagOutput = Pick<Tag, 'id' | 'name' | 'color'>;
+
 export class DashboardService {
   /**
    * Get recent scrapes for a user with pagination.
@@ -37,10 +55,13 @@ export class DashboardService {
   static async getRecentScrapes(
     userId: string,
     pagination: PaginationOptions
-  ): Promise<{ scrapes: RecentScrape[]; total: number }> {
+  ): Promise<{ scrapes: RecentScrapeOutput[]; total: number }> {
     const { page, limit } = pagination;
+    const skip = (page - 1) * limit;
+
     try {
-      const [scrapes, total] = await Promise.all([
+      const [scrapes, total] = await prisma.$transaction([
+        // Use $transaction for consistency, though Promise.all is also fine here
         prisma.scrapedPage.findMany({
           where: {
             userId: userId,
@@ -49,8 +70,9 @@ export class DashboardService {
             createdAt: 'desc',
           },
           take: limit,
-          skip: (page - 1) * limit,
+          skip: skip,
           select: {
+            // Selection matches RecentScrapeOutput interface
             id: true,
             url: true,
             title: true,
@@ -75,9 +97,8 @@ export class DashboardService {
         }),
       ]);
 
-      // Ensure the return type matches the promise annotation
-      return { scrapes: scrapes as RecentScrape[], total };
-
+      // Type assertion is safe because 'select' matches the interface exactly.
+      return { scrapes: scrapes as RecentScrapeOutput[], total };
     } catch (error) {
       logger.error({
         message: 'Error getting recent scrapes from service',
@@ -86,9 +107,8 @@ export class DashboardService {
         limit,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      // Re-throw or return empty state
+      // Consistently throw errors from service methods to allow controllers to handle responses
       throw new Error('Failed to retrieve recent scrapes.');
-      // Or return { scrapes: [], total: 0 };
     }
   }
 
@@ -97,50 +117,53 @@ export class DashboardService {
    *
    * @param userId - The ID of the user.
    * @param pagination - Pagination options (page, limit).
-   * @param filters - Filtering options (search, category, tag).
+   * @param filters - Filtering options (search, category, tag ID).
    * @returns Object containing scrapes and total count.
    */
   static async getAllScrapes(
     userId: string,
     pagination: PaginationOptions,
     filters: { search?: string; category?: string; tag?: string }
-  ): Promise<{ scrapes: RecentScrape[]; total: number }> { // Reuse RecentScrape interface for now
+  ): Promise<{ scrapes: RecentScrapeOutput[]; total: number }> {
     const { page, limit } = pagination;
     const { search, category, tag } = filters;
+    const skip = (page - 1) * limit;
+
+    // Use Prisma's generated type for the where clause for better type safety
+    const where: Prisma.ScrapedPageWhereInput = {
+      userId: userId,
+    };
+
+    if (search) {
+      // Note: mode: 'insensitive' is not supported by SQLite with Prisma. Search is case-sensitive.
+      where.OR = [
+        { url: { contains: search } },
+        { title: { contains: search } },
+      ];
+    }
+    if (category) {
+      where.category = category; // Assuming 'category' is a direct string field
+    }
+    if (tag) {
+      // Filter by tag ID using relation 'some'
+      where.tags = {
+        some: {
+          id: tag,
+        },
+      };
+    }
 
     try {
-      // Build Prisma where clause
-      const where: any = {
-        userId: userId,
-      };
-      if (search) {
-        where.OR = [
-          { url: { contains: search, mode: 'insensitive' } },
-          { title: { contains: search, mode: 'insensitive' } },
-        ];
-      }
-      if (category) {
-        where.category = category;
-      }
-      if (tag) {
-        // Assuming 'tag' filter is the tag ID
-        where.tags = {
-          some: {
-            id: tag,
-          },
-        };
-      }
-
-      // Get scrapes and total count
-      const [scrapes, total] = await Promise.all([
+      const [scrapes, total] = await prisma.$transaction([
         prisma.scrapedPage.findMany({
           where,
           orderBy: {
             createdAt: 'desc',
           },
           take: limit,
-          skip: (page - 1) * limit,
-          select: { // Select necessary fields, matching RecentScrape structure
+          skip: skip,
+          select: {
+            // Selection matches RecentScrapeOutput interface
             id: true,
             url: true,
             title: true,
@@ -161,8 +184,8 @@ export class DashboardService {
         prisma.scrapedPage.count({ where }),
       ]);
 
-      return { scrapes: scrapes as RecentScrape[], total };
-
+      // Type assertion is safe because 'select' matches the interface exactly.
+      return { scrapes: scrapes as RecentScrapeOutput[], total };
     } catch (error) {
       logger.error({
         message: 'Error getting all scrapes from service',
@@ -178,6 +201,8 @@ export class DashboardService {
 
   /**
    * Get dashboard statistics for a user within a date range.
+   * NOTE: Grouping by day and domain is done in JS for DB compatibility.
+   * For very large datasets, DB-specific raw queries might be more performant.
    *
    * @param userId - The ID of the user.
    * @param dateRange - Start and end dates for the statistics.
@@ -195,171 +220,124 @@ export class DashboardService {
     crawlJobStats: { pending: number; failed: number };
   }> {
     const { start, end } = dateRange;
+    // Define the common date range filter
+    const dateFilter = { gte: start, lte: end };
+
     try {
-      // Use Prisma.$transaction for atomicity if needed, but Promise.all is fine for reads
+      // Use Promise.all for concurrent independent queries
       const [
         totalScrapes,
         totalFavorites,
-        scrapesByDayResult, // Rename result variable
-        topDomainsResult,   // Rename result variable
-        scrapeJobStatsResult, // Add query for scrape job stats
-        crawlJobStatsResult   // Add query for crawl job stats
+        rawScrapeJobStats, // Renamed for clarity before processing
+        rawCrawlJobStats, // Renamed for clarity before processing
+        // Fetch pages for JS processing (by day and domain)
+        pagesForProcessing,
       ] = await Promise.all([
         // Total scrapes (within date range)
         prisma.scrapedPage.count({
-          where: {
-            userId: userId,
-            createdAt: { gte: start, lte: end },
-          },
+          where: { userId: userId, createdAt: dateFilter },
         }),
-
-        // Total favorites
+        // Total favorites (within date range)
         prisma.scrapedPage.count({
-          where: {
-            userId: userId,
-            isFavorite: true,
-            createdAt: { gte: start, lte: end },
-          },
+          where: { userId: userId, isFavorite: true, createdAt: dateFilter },
         }),
-
-        // Scrapes by day (using raw query)
-        prisma.$queryRaw`
-          SELECT
-            strftime('%Y-%m-%d', createdAt) as date, -- Use strftime for SQLite date formatting
-            CAST(COUNT(*) AS INTEGER) as count -- Explicitly cast count to integer
-          FROM ScrapedPage
-          WHERE
-            userId = ${userId}
-            AND createdAt >= ${start}
-            AND createdAt <= ${end}
-          GROUP BY date
-          ORDER BY date
-        `, // Removed type assertion
-
-        // Top domains (within date range)
-        prisma.$queryRaw`
-          SELECT
-            substr(url, instr(url, '://') + 3,
-              case
-                when instr(substr(url, instr(url, '://') + 3), '/') = 0
-                then length(substr(url, instr(url, '://') + 3))
-                else instr(substr(url, instr(url, '://') + 3), '/') - 1
-              end
-            ) as domain,
-            CAST(COUNT(*) AS INTEGER) as count -- Explicitly cast count to integer
-          FROM ScrapedPage
-          WHERE
-            userId = ${userId}
-            AND createdAt >= ${start}
-            AND createdAt <= ${end}
-          GROUP BY domain
-          ORDER BY count DESC
-          LIMIT 5
-        `, // Removed type assertion
-
-        // Scrape Job Stats (Pending/Failed - typically not date-bound)
+        // Scrape Job Stats (pending/failed)
         prisma.scrapeJob.groupBy({
           by: ['status'],
           where: {
             userId: userId,
-            status: { in: ['pending', 'failed'] },
-            // Filter by date range:
-            createdAt: { gte: start, lte: end },
+            status: { in: ['pending', 'failed'] }, // Use Prisma.JobStatus enum if defined
+            createdAt: dateFilter,
           },
-          _count: {
-            status: true,
-          },
+          _count: { status: true },
         }),
-
-        // Crawl Job Stats (Pending/Failed - typically not date-bound)
+        // Crawl Job Stats (pending/failed)
         prisma.crawlJob.groupBy({
           by: ['status'],
           where: {
             userId: userId,
-            status: { in: ['pending', 'failed'] },
-            // Filter by date range:
-            createdAt: { gte: start, lte: end },
+            status: { in: ['pending', 'failed'] }, // Use Prisma.JobStatus enum if defined
+            createdAt: dateFilter,
           },
-          _count: {
-            status: true,
+          _count: { status: true },
+        }),
+        // Fetch pages needed for JS-based aggregations (by day, by domain)
+        prisma.scrapedPage.findMany({
+          where: {
+            userId: userId,
+            createdAt: dateFilter,
           },
+          select: { createdAt: true, url: true }, // Select only necessary fields
+          orderBy: { createdAt: 'asc' }, // Ordering helps for date processing if needed
         }),
       ]);
 
-      // --- Start Debug Logging ---
-      logger.debug({
-        message: 'Raw statistics results',
-        userId,
-        totalScrapes,
-        totalFavorites,
-        scrapesByDayResult,
-        topDomainsResult,
-        scrapeJobStatsResult,
-        crawlJobStatsResult,
+      // Process scrapes by day (JS approach for DB compatibility)
+      const dayMap = new Map<string, number>();
+      pagesForProcessing.forEach((page) => {
+        const dateStr = page.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+        dayMap.set(dateStr, (dayMap.get(dateStr) || 0) + 1);
       });
-      // --- End Debug Logging ---
+      const scrapesByDay = Array.from(dayMap.entries()).map(([date, count]) => ({
+        date,
+        count, // count is already a number
+      }));
 
-      // Define the expected type for groupBy results
-      type JobStatResult = { status: string; _count: { status: number } };
+      // Process top domains (JS approach)
+      const domainMap = new Map<string, number>();
+      pagesForProcessing.forEach((page) => {
+        try {
+          // Use URL object to reliably extract hostname
+          const domain = new URL(page.url).hostname;
+          domainMap.set(domain, (domainMap.get(domain) || 0) + 1);
+        } catch (e) {
+          logger.warn(`Invalid URL encountered processing top domains: ${page.url}`);
+          // Skip invalid URLs
+        }
+      });
+      const topDomains = Array.from(domainMap.entries())
+        .map(([domain, count]) => ({ domain, count }))
+        .sort((a, b) => b.count - a.count) // Sort descending by count
+        .slice(0, 5); // Limit to top 5
 
-      let scrapeJobStats = { pending: 0, failed: 0 };
-      let crawlJobStats = { pending: 0, failed: 0 };
+      // Process job stats from groupBy results
+      const scrapeJobStats = {
+        pending: rawScrapeJobStats.find((s) => s.status === 'pending')?._count.status || 0,
+        failed: rawScrapeJobStats.find((s) => s.status === 'failed')?._count.status || 0,
+      };
+      const crawlJobStats = {
+        pending: rawCrawlJobStats.find((s) => s.status === 'pending')?._count.status || 0,
+        failed: rawCrawlJobStats.find((s) => s.status === 'failed')?._count.status || 0,
+      };
 
-      try {
-        // Process job stats results
-        scrapeJobStats = {
-          pending: scrapeJobStatsResult.find((s: JobStatResult) => s.status === 'pending')?._count.status || 0,
-          failed: scrapeJobStatsResult.find((s: JobStatResult) => s.status === 'failed')?._count.status || 0,
-        };
-        crawlJobStats = {
-          pending: crawlJobStatsResult.find((s: JobStatResult) => s.status === 'pending')?._count.status || 0,
-          failed: crawlJobStatsResult.find((s: JobStatResult) => s.status === 'failed')?._count.status || 0,
-        };
-      } catch (processingError) {
-        logger.error({
-          message: 'Error processing job statistics results',
-          userId,
-          scrapeJobStatsResult,
-          crawlJobStatsResult,
-          error: processingError instanceof Error ? processingError.message : 'Unknown processing error',
-        });
-        // Depending on requirements, either throw or return default/partial stats
-        throw new Error('Failed to process job statistics.');
-      }
-
-      // Ensure raw query results are arrays before returning
-      const scrapesByDay = Array.isArray(scrapesByDayResult) ? scrapesByDayResult : [];
-      const topDomains = Array.isArray(topDomainsResult) ? topDomainsResult : [];
-
-      // --- Start Debug Logging ---
+      // Log the processed data for debugging
       logger.debug({
         message: 'Dashboard Statistics Calculation Details',
         userId,
         startDateUsed: start.toISOString(),
         endDateUsed: end.toISOString(),
-        calculatedTotalScrapes: totalScrapes, // Log the value from Prisma
+        calculatedTotalScrapes: totalScrapes,
         calculatedTotalFavorites: totalFavorites,
+        calculatedScrapesByDay: scrapesByDay,
+        calculatedTopDomains: topDomains,
         calculatedScrapeJobStats: scrapeJobStats,
         calculatedCrawlJobStats: crawlJobStats,
       });
-      // --- End Debug Logging ---
-
 
       return {
-        totalScrapes, // Return the logged value
+        totalScrapes,
         totalFavorites,
-        scrapesByDay: scrapesByDay, // Use processed variable
-        topDomains: topDomains,     // Use processed variable
+        scrapesByDay,
+        topDomains,
         scrapeJobStats,
         crawlJobStats,
       };
-
     } catch (error) {
       logger.error({
         message: 'Error getting dashboard statistics from service',
         userId: userId,
-        startDate: start,
-        endDate: end,
+        startDate: start.toISOString(), // Log ISO string for consistency
+        endDate: end.toISOString(),
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new Error('Failed to retrieve dashboard statistics.');
@@ -367,21 +345,22 @@ export class DashboardService {
   }
 
   /**
-   * Get all tags.
+   * Get all tags, ordered by name.
    *
    * @returns Array of tags.
    */
-  static async getTags(): Promise<Array<{ id: string; name: string; color: string | null }>> {
+  static async getTags(): Promise<TagOutput[]> {
     try {
       const tags = await prisma.tag.findMany({
         orderBy: {
           name: 'asc',
         },
-        select: { // Explicitly select fields
-            id: true,
-            name: true,
-            color: true,
-        }
+        select: {
+          // Explicitly select fields
+          id: true,
+          name: true,
+          color: true,
+        },
       });
       return tags;
     } catch (error) {
@@ -393,7 +372,7 @@ export class DashboardService {
     }
   }
 
-   /**
+  /**
    * Get scrape jobs for a user with filtering and pagination.
    *
    * @param userId - The ID of the user.
@@ -404,39 +383,39 @@ export class DashboardService {
   static async getScrapeJobs(
     userId: string,
     pagination: PaginationOptions,
-    filters: { status?: string }
-  ): Promise<{ jobs: any[]; total: number }> { // Use 'any' for job type for now
+    filters: { status?: string } // Consider using Prisma.JobStatus enum if defined
+  ): Promise<{ jobs: ScrapeJob[]; total: number }> {
+    // Use the Prisma generated ScrapeJob type
     const { page, limit } = pagination;
     const { status } = filters;
+    const skip = (page - 1) * limit;
+
+    // Use Prisma's generated type for the where clause
+    const where: Prisma.ScrapeJobWhereInput = {
+      userId: userId,
+    };
+
+    if (status) {
+      // TODO: Add validation if status comes directly from user input
+      // e.g., if (!Object.values(Prisma.JobStatus).includes(status as Prisma.JobStatus)) { ... }
+      where.status = status; // Assuming status is a valid status string/enum value
+    }
 
     try {
-      // Build where clause
-      const where: any = {
-        userId: userId,
-      };
-      if (status) {
-        // Ensure status is one of the allowed enum values if using Prisma enum
-        // Example: if (['pending', 'processing', 'completed', 'failed'].includes(status)) {
-        where.status = status;
-        // } else { logger.warn(`Invalid status filter: ${status}`); }
-      }
-
-      // Get scrape jobs and total count
-      const [jobs, total] = await Promise.all([
+      const [jobs, total] = await prisma.$transaction([
         prisma.scrapeJob.findMany({
           where,
           orderBy: {
             createdAt: 'desc',
           },
           take: limit,
-          skip: (page - 1) * limit,
-          // Select specific fields if needed, or return the full object
+          skip: skip,
+          // Select all fields by default, or use 'select' if only a subset is needed
         }),
         prisma.scrapeJob.count({ where }),
       ]);
 
       return { jobs, total };
-
     } catch (error) {
       logger.error({
         message: 'Error getting scrape jobs from service',
@@ -463,33 +442,40 @@ export class DashboardService {
         where: { id: jobId },
       });
 
-      // Check if job exists and belongs to the user
-      if (!job || job.userId !== userId) {
+      // 1. Check if job exists and belongs to the user
+      if (!job) {
+        logger.warn({ message: `Retry attempt failed: Job ${jobId} not found.`, userId });
+        return { success: false, message: 'Job not found.' };
+      }
+      if (job.userId !== userId) {
+        logger.warn({ message: `Retry attempt failed: Job ${jobId} does not belong to user ${userId}.` });
         return { success: false, message: 'Job not found or not owned by user.' };
       }
 
-      // Check if job is actually failed
-      if (job.status !== 'failed') {
-        return { success: false, message: 'Only failed jobs can be retried.' };
+      // 2. Check if job is actually failed
+      if (job.status !== 'failed') { // Assuming 'failed' is the correct status string/enum value
+        logger.warn({ message: `Retry attempt failed: Job ${jobId} is not in 'failed' status (status: ${job.status}).`, userId });
+        return { success: false, message: `Only failed jobs can be retried. Current status: ${job.status}.` };
       }
 
-      // Update job status to pending
+      // 3. Update job status to pending and reset fields
       await prisma.scrapeJob.update({
         where: { id: jobId },
         data: {
-          status: 'pending',
-          startTime: null, // Reset times and error
+          status: 'pending', // Assuming 'pending' is the correct status string/enum value
+          startTime: null,
           endTime: null,
           error: null,
+          // Consider resetting retry count here if applicable
         },
       });
 
       logger.info({ message: `Job ${jobId} marked for retry by user ${userId}` });
       return { success: true, message: 'Job marked for retry.' };
-
     } catch (error) {
       logger.error({
         message: `Error marking job ${jobId} for retry`,
+        jobId,
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -506,32 +492,31 @@ export class DashboardService {
    */
   static async deleteScrapeJob(jobId: string, userId: string): Promise<{ success: boolean; message: string }> {
     try {
-      // First, verify the job exists and belongs to the user
-      const job = await prisma.scrapeJob.findUnique({
-        where: { id: jobId },
-        select: { userId: true } // Only select userId for verification
+      // Use deleteMany with checks for ID and userId for atomicity and ownership verification
+      // This avoids a separate findUnique call.
+      const deleteResult = await prisma.scrapeJob.deleteMany({
+        where: {
+          id: jobId,
+          userId: userId, // Ensure the job belongs to the user
+        },
       });
 
-      if (!job || job.userId !== userId) {
+      // Check if any record was actually deleted
+      if (deleteResult.count === 0) {
+        // Could be because the job didn't exist OR it didn't belong to the user
+        // We might check if the job ID exists at all for a more specific message, but this is simpler.
+        logger.warn({ message: `Delete attempt failed: Job ${jobId} not found or not owned by user ${userId}.` });
         return { success: false, message: 'Job not found or not owned by user.' };
       }
 
-      // If verification passes, delete the job
-      await prisma.scrapeJob.delete({
-        where: { id: jobId },
-      });
-
-      logger.info({ message: `Job ${jobId} deleted by user ${userId}` });
+      logger.info({ message: `Job ${jobId} deleted successfully by user ${userId}` });
       return { success: true, message: 'Job deleted successfully.' };
-
     } catch (error) {
-       // Handle potential errors, e.g., Prisma errors like record not found
-       if (error instanceof Error && (error as any).code === 'P2025') {
-           logger.warn({ message: `Attempted to delete non-existent job ${jobId}`, userId });
-           return { success: false, message: 'Job not found.' };
-       }
+      // deleteMany shouldn't throw P2025 (RecordNotFound) like delete does,
+      // but handle other potential errors.
       logger.error({
         message: `Error deleting job ${jobId}`,
+        jobId,
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -541,49 +526,56 @@ export class DashboardService {
 
   /**
    * Get crawl jobs for a user with pagination and filtering.
+   *
+   * @param userId - The ID of the user.
+   * @param pagination - Pagination options (page, limit).
+   * @param filters - Filtering options (status).
+   * @returns Object containing jobs and total count.
    */
   static async getCrawlJobs(
     userId: string,
-    pagination: { page: number; limit: number },
-    filters: { status?: string }
-  ): Promise<{ jobs: any[]; total: number }> { // Use 'any' for now, or import CrawlJob type
+    pagination: PaginationOptions,
+    filters: { status?: string } // Consider using Prisma.JobStatus enum if defined
+  ): Promise<{ jobs: CrawlJobSummary[]; total: number }> {
+    // Use the defined CrawlJobSummary type
+    const { page, limit } = pagination;
+    const skip = (page - 1) * limit;
+
+    // Use Prisma's generated type for the where clause
+    const where: Prisma.CrawlJobWhereInput = {
+      userId: userId,
+    };
+
+    if (filters.status) {
+      // TODO: Add validation if status comes directly from user input
+      where.status = filters.status; // Assuming status is a valid status string/enum value
+    }
+
     try {
-      const { page, limit } = pagination;
-      const skip = (page - 1) * limit;
-
-      const where: any = { // Use 'any' type for the where clause
-        userId: userId, // Filter by user
-      };
-
-      if (filters.status) {
-        where.status = filters.status;
-      }
-
       const [jobs, total] = await prisma.$transaction([
         prisma.crawlJob.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           skip,
           take: limit,
-          // Select specific fields if needed to optimize payload
           select: {
-             id: true,
-             startUrl: true,
-             status: true,
-             createdAt: true,
-             startTime: true,
-             endTime: true,
-             processedUrls: true,
-             foundUrls: true,
-             // options: true, // Maybe exclude large options string from list view
-             // failedUrls: true // Maybe exclude large failedUrls string from list view
-          }
+            // Select specific fields defined in CrawlJobSummary
+            id: true,
+            startUrl: true,
+            status: true,
+            createdAt: true,
+            startTime: true,
+            endTime: true,
+            processedUrls: true,
+            foundUrls: true,
+            // Exclude 'options', 'failedUrls', etc. for list view performance
+          },
         }),
         prisma.crawlJob.count({ where }),
       ]);
 
+      // The result 'jobs' now implicitly matches CrawlJobSummary[] due to the 'select'
       return { jobs, total };
-
     } catch (error) {
       logger.error({
         message: 'Error getting crawl jobs in service',
@@ -592,10 +584,11 @@ export class DashboardService {
         filters,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      // Re-throw or return empty state? Returning empty for now.
-      return { jobs: [], total: 0 };
+      // Throw error consistently
+      throw new Error('Failed to retrieve crawl jobs.');
+      // Previous behavior: return { jobs: [], total: 0 };
     }
   }
 
-  // TODO: Add methods for managing tags, categories, etc. if needed
+  // TODO: Add methods for managing tags (create, update, delete), categories, etc. if needed
 }

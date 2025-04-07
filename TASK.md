@@ -4,6 +4,8 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [x] Fix `npm run dev` crash (Added: 2025-04-06)
+
 ### Project Setup
 - [x] Initialize project structure
 - [x] Configure TypeScript
@@ -31,6 +33,7 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Create user-friendly output formatting
 - [x] Add error handling
 - [x] Create usage documentation
+- [x] Remove constant debug info from CLI (Added: 2025-04-06)
 
 ### Core Functionality
 - [x] Implement basic HTTP request functionality
@@ -58,6 +61,7 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 - [x] Implement test coverage reporting
 - [x] Create mock services for testing
 - [x] Investigate dashboard update issues (Added: 2025-04-06)
+- [x] Fix 'Recent Scrapes' not showing data (Added: 2025-04-06) - *Resolved by running migrations, DB was reset.*
 
 ### Documentation
 - [x] Create detailed API documentation
@@ -84,6 +88,8 @@ This document tracks the tasks required to implement and maintain the Web Scrape
     - [x] Add basic UI elements to Dashboard for crawl jobs
 
 ### Maintenance
+- [x] Update npm packages (Added: 2025-04-06)
+- [x] Publish npm package v0.2.0 (Added: 2025-04-06)
 - [ ] Set up CI/CD pipeline
 - [ ] Create release process
 - [ ] Implement semantic versioning

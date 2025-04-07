@@ -224,44 +224,58 @@ function loadDataForCurrentPage() {
 
 // Load dashboard statistics
 async function loadDashboardStats() {
-  console.log('Attempting to load dashboard stats...'); // Log start
+  console.log('Attempting to load dashboard stats...'); // Keep this existing log
   try {
-    // Removed cache: 'no-store' - relying on backend headers now
-    const response = await fetch('/api/dashboard/statistics', {
-      headers: { 'Authorization': `Bearer ${state.token}` }
-      // cache: 'no-store' // Removed this line
+    // Add cache busting parameter to prevent browser caching
+    const cacheBuster = new Date().getTime();
+    const response = await fetch(`/api/dashboard/statistics?_=${cacheBuster}`, {
+      headers: { 'Authorization': `Bearer ${state.token}` },
+      cache: 'no-store' // Re-add this to force fresh data
     });
-    if (!response.ok) throw new Error('Failed to load dashboard statistics');
-    const result = await response.json();
-    if (result.status === 'success') {
-      // Log before update
-      console.log('Before update - Total Scrapes:', document.getElementById('stat-total-scrapes').textContent);
-      console.log('Before update - Favorites:', document.getElementById('stat-favorites').textContent);
-      console.log('Before update - Pending Jobs:', document.getElementById('stat-pending-jobs').textContent);
-      console.log('Before update - Failed Jobs:', document.getElementById('stat-failed-jobs').textContent);
 
-      // Update elements
-      document.getElementById('stat-total-scrapes').textContent = result.data.totalScrapes;
-      document.getElementById('stat-favorites').textContent = result.data.totalFavorites;
-      const pendingJobs = (result.data.scrapeJobStats?.pending || 0) + (result.data.crawlJobStats?.pending || 0);
-      const failedJobs = (result.data.scrapeJobStats?.failed || 0) + (result.data.crawlJobStats?.failed || 0);
+    if (!response.ok) throw new Error(`Failed to load dashboard statistics: ${response.status}`);
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      console.log('Dashboard data received:', result.data); // Log the entire data object
+
+      // Safely update DOM elements with explicit type conversion to handle null/undefined
+      document.getElementById('stat-total-scrapes').textContent = Number(result.data.totalScrapes || 0);
+      document.getElementById('stat-favorites').textContent = Number(result.data.totalFavorites || 0);
+
+      const pendingJobs =
+        (Number(result.data.scrapeJobStats?.pending) || 0) +
+        (Number(result.data.crawlJobStats?.pending) || 0);
+
+      const failedJobs =
+        (Number(result.data.scrapeJobStats?.failed) || 0) +
+        (Number(result.data.crawlJobStats?.failed) || 0);
+
       document.getElementById('stat-pending-jobs').textContent = pendingJobs;
       document.getElementById('stat-failed-jobs').textContent = failedJobs;
 
-      // Log after update
-      console.log('After update - Total Scrapes:', document.getElementById('stat-total-scrapes').textContent);
-      console.log('After update - Favorites:', document.getElementById('stat-favorites').textContent);
-      console.log('After update - Pending Jobs:', document.getElementById('stat-pending-jobs').textContent);
-      console.log('After update - Failed Jobs:', document.getElementById('stat-failed-jobs').textContent);
+      // Only create chart if we have data
+      if (Array.isArray(result.data.scrapesByDay) && result.data.scrapesByDay.length > 0) {
+        createActivityChart(result.data.scrapesByDay);
+      } else {
+        console.warn('No scrapesByDay data available for chart');
+        // Create empty chart or show "No data" message
+        createActivityChart([]);
+      }
 
-      createActivityChart(result.data.scrapesByDay);
-      renderTopDomains(result.data.topDomains);
-      console.log('Successfully loaded and updated dashboard stats.'); // Log success
+      // Render top domains if available
+      if (Array.isArray(result.data.topDomains)) {
+        renderTopDomains(result.data.topDomains);
+      } else {
+        console.warn('No topDomains data available');
+      }
+
+      console.log('Successfully loaded and updated dashboard stats.');
     } else {
-      console.error('API Error loading dashboard statistics:', result.message); // More specific error
+      console.error('API Error:', result.message);
     }
   } catch (error) {
-    console.error('Fetch Error loading dashboard statistics:', error); // More specific error
+    console.error('Fetch Error:', error);
   }
 }
 

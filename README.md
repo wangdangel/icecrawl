@@ -33,9 +33,12 @@ npm install
 cp .env.example .env
 # Edit .env file with your configuration
 
-# Generate Prisma client and run migrations
+# Apply database migrations (creates/updates database schema)
+# Note: This command may reset the database if schema drift is detected.
+npx prisma migrate dev
+
+# Generate Prisma client (based on the schema)
 npm run prisma:generate
-npm run prisma:migrate
 
 # Build the project and dashboard
 npm run build
