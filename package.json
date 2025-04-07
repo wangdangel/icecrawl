@@ -1,6 +1,6 @@
 {
   "name": "icecrawl",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Dual-interface web scraping application with HTTP API and CLI",
   "main": "dist/index.js",
   "bin": {
@@ -29,7 +29,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
     "prepare": "husky install",
-    "postinstall": "prisma migrate deploy && npm run prisma:seed",
+    "postinstall": "prisma migrate dev --name postinstall-setup && npm run prisma:seed",
     "release:major": "standard-version --release-as major",
     "release:minor": "standard-version --release-as minor",
     "release:patch": "standard-version --release-as patch",
