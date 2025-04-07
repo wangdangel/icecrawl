@@ -1,6 +1,6 @@
 {
   "name": "icecrawl",
-  "version": "0.3.6",
+  "version": "0.3.12",
   "description": "Web scraping application with HTTP API (incl. Dashboard), CLI, and MCP Server interfaces.",
   "main": "dist/index.js",
   "bin": {
@@ -9,13 +9,16 @@
   },
   "files": [
     "dist",
+    "prisma/schema.prisma",
+    "prisma/seed.js",
+    "prisma/seed.js.map",
     "README.md",
     "LICENSE",
     "package.json",
     "scripts"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc prisma/seed.ts --outDir prisma --module commonjs --target es2020 --resolveJsonModule true --esModuleInterop true --sourceMap true --skipLibCheck true",
     "build:dashboard": "xcopy src\\dashboard public\\dashboard /E /I /Y",
     "start": "node dist/index.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
@@ -30,7 +33,6 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "prepare": "husky install",
     "postinstall": "node scripts/global-postinstall.js",
     "release:major": "standard-version --release-as major",
     "release:minor": "standard-version --release-as minor",
@@ -67,6 +69,7 @@
     "@aws-sdk/client-ses": "^3.565.0",
     "@modelcontextprotocol/sdk": "1.8.0",
     "@prisma/client": "^5.11.0",
+    "prisma": "^5.11.0",
     "@types/turndown": "5.0.5",
     "axios": "^1.6.7",
     "axios-retry": "^4.0.0",
@@ -88,7 +91,7 @@
     "morgan": "^1.10.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.12",
-    "puppeteer": "^21.6.1",
+    "puppeteer": "^22.8.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "turndown": "7.2.0",
@@ -123,7 +126,6 @@
     "lint-staged": "^15.2.2",
     "nodemon": "3.1.9",
     "prettier": "^3.2.5",
-    "prisma": "^5.11.0",
     "standard-version": "^9.5.0",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
@@ -131,7 +133,7 @@
     "typescript": "5.8.3"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=18.0.0"
   },
   "lint-staged": {
     "*.ts": "eslint --cache --fix",
