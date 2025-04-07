@@ -1,6 +1,6 @@
 {
   "name": "icecrawl",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Dual-interface web scraping application with HTTP API and CLI",
   "main": "dist/index.js",
   "bin": {

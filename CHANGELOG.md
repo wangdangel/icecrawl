@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.3.0](https://github.com/wangdangel/icecrawl/compare/v0.2.0...v0.3.0) (2025-04-07)
+
+
+### Features
+
+* Implement MCP Server Interface\n\nAdds a Model Context Protocol (MCP) server interface to Icecrawl, allowing programmatic interaction via MCP clients.\n\n- Installs @modelcontextprotocol/sdk dependency.\n- Creates src/mcp-server.ts as the server entry point, loading .env.\n- Implements ListTools handler defining scrape_url, start_crawl, and get_crawl_job_result tools with their input schemas.\n- Implements CallTool handler with basic logic for each tool, leveraging existing services (Scraper, MarkdownService, Prisma, BrowserService).\n- Adds icecrawl-mcp command to package.json bin field.\n- Updates README.md and PLANNING.md to document the new interface and configuration.\n- Updates TASK.md to track MCP integration progress. ([e0ecc19](https://github.com/wangdangel/icecrawl/commit/e0ecc19bd91b08636af53bc5cd6cc27b190ea1da))
+
+
+### Bug Fixes
+
+* align package.json with npm publish corrections ([6d7b79d](https://github.com/wangdangel/icecrawl/commit/6d7b79d8c1d0f2bb1195d6fdcf2f0799697d48a4))
+
 ## 0.2.0 (2025-04-07)
 
 
