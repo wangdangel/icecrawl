@@ -5,7 +5,7 @@ A powerful web scraping application offering multiple interfaces: HTTP API (with
 ## Features
 
 -   **Multiple Interfaces**:
-    -   **HTTP API Server**: RESTful API for integration, includes a web dashboard.
+    -   **HTTP API Server**: RESTful API for integration, includes a web dashboard. Accessible via `icecrawl-server start`.
     -   **CLI Tool**: `icecrawl` command for terminal-based scraping.
     -   **MCP Server**: `icecrawl-mcp` command for programmatic use with MCP clients (like AI assistants).
 -   **Web Dashboard**: User-friendly UI for managing scrapes and viewing results.
@@ -18,7 +18,9 @@ A powerful web scraping application offering multiple interfaces: HTTP API (with
 -   **JS Rendering**: Optional headless browser usage via Puppeteer.
 -   *And more (Content Transformation, Exporting, Scheduled Jobs...)*
 
-## Installation & Setup (for Users)
+## Installation
+
+### Option 1: From npm (Recommended for Users)
 
 ```bash
 # Install globally from npm
@@ -30,7 +32,7 @@ npm install -g icecrawl
 mkdir my-icecrawl-data
 cd my-icecrawl-data
 
-# 2. Create a .env file (copy from example if needed)
+# 2. Create a .env file
 #    You MUST set DATABASE_URL, e.g., DATABASE_URL="file:./icecrawl.db"
 #    You SHOULD set a secure JWT_SECRET
 echo "DATABASE_URL=\"file:./icecrawl.db\"" > .env
@@ -38,31 +40,58 @@ echo "JWT_SECRET=\"$(openssl rand -hex 32)\"" >> .env # Example for generating s
 
 # 3. Initialize the database (creates the DB file and schema)
 #    Run this command from your data directory ('my-icecrawl-data')
-#    It needs access to the prisma schema within the installed package.
 #    (Requires npx, usually installed with Node.js)
-npx prisma migrate deploy --schema="<path-to-global-node-modules>/icecrawl/node_modules/@prisma/client/../..//prisma/schema.prisma"
-#    Note: Replace <path-to-global-node-modules> with your actual global npm path.
-#    Find it with `npm root -g` and navigate to `icecrawl/prisma/schema.prisma`.
-#    Alternatively, clone the repo, cd into it, run `npx prisma migrate deploy` using the local schema,
-#    then copy the generated DB file to your data directory.
+#    Note: Replace <path-to-global-node-modules> with your actual global npm path (find with `npm root -g`).
+npx prisma migrate deploy --schema="<path-to-global-node-modules>/icecrawl/prisma/schema.prisma"
 
 # 4. Seed initial data (optional, creates default admin user etc.)
 #    (Requires npx and ts-node)
 #    Run from your data directory:
 # npx ts-node "<path-to-global-node-modules>/icecrawl/prisma/seed.ts"
 ```
-*Note: Database setup for globally installed npm packages involving Prisma can be complex. Cloning the repository and running locally might be easier for development.*
+*Note: Database setup for globally installed npm packages involving Prisma can be complex. If you encounter issues, consider the "From Source" method.*
+
+### Option 2: From Source (for Development)
+
+```bash
+# Clone the repository
+git clone https://github.com/wangdangel/icecrawl.git
+cd icecrawl
+
+# Install dependencies (including devDependencies)
+npm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env file with your configuration (DATABASE_URL, JWT_SECRET, etc.)
+
+# Apply database migrations (creates/updates database schema)
+npx prisma migrate dev
+
+# Generate Prisma client
+npm run prisma:generate
+
+# Build the project and dashboard
+npm run build
+npm run build:dashboard
+
+# (Optional) Link the commands globally for easier access during development
+# npm link
+```
 
 ## Usage
 
-Make sure you are in the directory containing your `.env` file and database.
+Ensure you are running commands from the directory containing your `.env` file and database (e.g., `my-icecrawl-data` if installed from npm, or the project root if running from source).
 
 ### HTTP API Server & Dashboard
 
 ```bash
-# Start the server (reads .env from current directory)
+# If installed globally:
 icecrawl-server start
-# Or: node <path-to-global-node-modules>/icecrawl/dist/index.js
+
+# If running from source:
+npm start
+# Or for development with auto-reload: npm run dev
 
 # Access:
 # - Dashboard: http://localhost:6969/dashboard (Default port 6969)
@@ -72,24 +101,34 @@ icecrawl-server start
 ### CLI Tool
 
 ```bash
-# Scrape a URL (reads .env from current directory)
+# If installed globally:
 icecrawl url https://example.com
-
-# Get help
 icecrawl --help
+
+# If running from source:
+npm run cli url https://example.com
+npm run cli --help
 ```
 
 ### MCP Server
 
 ```bash
-# Run the MCP server (reads .env from current directory)
+# If installed globally:
 icecrawl-mcp
-# Or: node <path-to-global-node-modules>/icecrawl/dist/mcp-server.js
 
-# Configure in your MCP client (e.g., Cline)
-# Use 'node' as command and the *absolute path* to the installed
-# 'icecrawl/dist/mcp-server.js' as the argument.
-# Set 'cwd' to your data directory (containing .env).
+# If running from source:
+node dist/mcp-server.js
+
+# --- Configuring in MCP Clients (e.g., Cline) ---
+# Regardless of how you run it, configure the client like this:
+#
+# Command: node
+# Args: ["<ABSOLUTE_PATH_TO>/dist/mcp-server.js"]
+#   (e.g., "k:/Documents/smart_crawler/dist/mcp-server.js" if running from source)
+#   (e.g., "<path-to-global-node-modules>/icecrawl/dist/mcp-server.js" if installed globally)
+# Cwd: "<PATH_TO_YOUR_DATA_DIRECTORY>" (containing .env and DB file)
+#   (e.g., "k:/Documents/smart_crawler" if running from source)
+#   (e.g., "/path/to/my-icecrawl-data" if installed globally)
 ```
 
 #### Available MCP Tools
@@ -104,22 +143,25 @@ icecrawl-mcp
     -   Inputs: `jobId`.
     -   Output: JSON with status, progress, and `jsonData` or `markdownData`.
 
-## Development
+## Development Commands
 
-(Instructions for cloning, building, testing - kept from original)
+(Only relevant when working from source)
 
 ```bash
-# Clone the repository
-git clone https://github.com/wangdangel/icecrawl.git
-cd icecrawl
-# Install dev dependencies
-npm install
-# Setup .env, run migrations etc. (see Installation)
-# Run in development mode (with auto-restart)
-npm run dev
 # Run tests
 npm test
-# ... other dev commands ...
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Open Prisma Studio (database UI)
+npm run prisma:studio
 ```
 
 ## Project Structure
