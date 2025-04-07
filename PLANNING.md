@@ -4,19 +4,27 @@ This document outlines the planning for the Web Scraper Dual-Interface project.
 
 ## Project Overview
 
-The Web Scraper Dual-Interface is a versatile application designed to function in two distinct modes:
+Icecrawl is a versatile web scraping application designed to function via three distinct interfaces:
 
-1. **HTTP API Server (Model Context Protocol server)**
-   - Runs on port 6970 (default, configurable via PORT env var)
-   - Provides scraping functionality via RESTful endpoints
-   - Intended for integration with other applications
-   - Returns scraped content in structured JSON format
+1.  **HTTP API Server**
+    -   Runs on port 6969 (default, configurable via PORT env var).
+    -   Provides scraping and job management via RESTful endpoints.
+    -   Includes a web dashboard for UI interaction.
+    -   Intended for web-based integration and user interaction.
+    -   Uses API key and/or session-based authentication.
 
-2. **Command-Line Interface (CLI) Tool**
-   - Uses standard input/output (stdin/stdout) for data exchange
-   - Can be run via `npx`
-   - Provides direct access to scraping functionality from terminal
-   - Supports piping and redirection
+2.  **Command-Line Interface (CLI) Tool**
+    -   Accessible via `npx icecrawl`.
+    -   Uses standard input/output (stdin/stdout) for data exchange.
+    -   Provides direct access to scraping functionality from the terminal.
+    -   Supports piping and redirection.
+
+3.  **Model Context Protocol (MCP) Server**
+    -   Accessible via `npx icecrawl-mcp`.
+    -   Communicates over standard input/output using the MCP specification.
+    -   Exposes core scraping and crawling functionality as MCP tools.
+    -   Intended for programmatic integration with MCP clients (e.g., AI assistants).
+    -   Does not implement separate authentication (relies on execution context).
 
 ## Architecture
 
@@ -86,6 +94,7 @@ The Web Scraper Dual-Interface is a versatile application designed to function i
 - **Commander.js**: CLI argument parsing
 - **Winston**: Structured logging
 - **Node-cache**: In-memory caching
+- **@modelcontextprotocol/sdk**: For implementing the MCP server interface
 
 ## Future Considerations
 

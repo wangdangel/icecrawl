@@ -1,4 +1,4 @@
-import { Prisma, ScrapedPage, ScrapeJob, CrawlJob, Tag } from '@prisma/client'; // Import Prisma namespace and specific types
+import { PrismaClient, Prisma, ScrapedPage, ScrapeJob, CrawlJob, Tag } from '@prisma/client'; // Standard Prisma import
 import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 
@@ -274,7 +274,7 @@ export class DashboardService {
 
       // Process scrapes by day (JS approach for DB compatibility)
       const dayMap = new Map<string, number>();
-      pagesForProcessing.forEach((page) => {
+      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => { // Add type annotation for 'page'
         const dateStr = page.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
         dayMap.set(dateStr, (dayMap.get(dateStr) || 0) + 1);
       });
@@ -285,7 +285,7 @@ export class DashboardService {
 
       // Process top domains (JS approach)
       const domainMap = new Map<string, number>();
-      pagesForProcessing.forEach((page) => {
+      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => { // Add type annotation for 'page'
         try {
           // Use URL object to reliably extract hostname
           const domain = new URL(page.url).hostname;
@@ -300,14 +300,17 @@ export class DashboardService {
         .sort((a, b) => b.count - a.count) // Sort descending by count
         .slice(0, 5); // Limit to top 5
 
+      // Define type for groupBy results for clarity
+      type JobStatGroup = { status: string; _count: { status: number } };
+
       // Process job stats from groupBy results
       const scrapeJobStats = {
-        pending: rawScrapeJobStats.find((s) => s.status === 'pending')?._count.status || 0,
-        failed: rawScrapeJobStats.find((s) => s.status === 'failed')?._count.status || 0,
+        pending: rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
+        failed: rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
       };
       const crawlJobStats = {
-        pending: rawCrawlJobStats.find((s) => s.status === 'pending')?._count.status || 0,
-        failed: rawCrawlJobStats.find((s) => s.status === 'failed')?._count.status || 0,
+        pending: rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
+        failed: rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
       };
 
       // Log the processed data for debugging

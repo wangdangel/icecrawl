@@ -176,6 +176,61 @@ Access it at `http://localhost:6969/dashboard`.
 
 For detailed CLI usage, see [CLI Usage Guide](./docs/cli-usage.md).
 
+## MCP Server Interface
+
+Icecrawl can also run as a Model Context Protocol (MCP) server, allowing programmatic interaction via MCP clients (like AI assistants).
+
+### Configuring the MCP Server in Clients (e.g., Cline)
+
+To use this server with an MCP client like Cline, you need to configure it in the client's settings. The server should be executed directly using `node` with the absolute path to the compiled script.
+
+**Example Cline Configuration (`cline_mcp_settings.json`):**
+
+```json
+{
+  "mcpServers": {
+    // ... other servers ...
+    "icecrawl-mcp": {
+      "command": "node",
+      "args": [
+        // Replace with the ABSOLUTE path to your project's compiled file
+        "k:/Documents/smart_crawler/dist/mcp-server.js"
+      ],
+      // Important: Set cwd to the project root for .env loading
+      "cwd": "k:/Documents/smart_crawler",
+      "disabled": false,
+      "autoApprove": [], // Configure auto-approval as needed
+      "timeout": 60,
+      "transportType": "stdio"
+    }
+    // ... other servers ...
+  }
+}
+```
+
+**Prerequisites:**
+- Ensure Node.js is installed and accessible in the environment where the client runs the command.
+- Build the project first using `npm run build` to generate the `dist/mcp-server.js` file.
+- Make sure the `.env` file exists in the `cwd` (`k:/Documents/smart_crawler` in this example) with the correct `DATABASE_URL`.
+
+The server communicates over standard input/output.
+
+### Available MCP Tools
+
+The following tools are exposed via the MCP interface:
+
+-   **`scrape_url`**: Fetches, scrapes, and optionally captures HTML/screenshot from a single URL.
+    -   Inputs: `url` (required), `outputFormats` (optional array: "json", "markdown", "html", "screenshot"), `selectors` (optional object), `useBrowser` (optional boolean), `waitForSelector` (optional string), `proxy` (optional string).
+    -   Output: JSON object containing requested data (`jsonData`, `markdownData`, `htmlContent`, `screenshotBase64`).
+-   **`start_crawl`**: Initiates an asynchronous job to crawl a website.
+    -   Inputs: `startUrl` (required), `outputFormat` (optional: "json", "markdown", "both" - for final result), `maxDepth` (optional int), `domainScope` (optional boolean), `includePatterns` (optional array), `excludePatterns` (optional array), `useBrowser` (optional boolean), `waitForSelector` (optional string), `proxy` (optional string).
+    -   Output: JSON object `{ "jobId": "..." }`.
+-   **`get_crawl_job_result`**: Retrieves the status and results of a crawl job.
+    -   Inputs: `jobId` (required).
+    -   Output: JSON object with job status, progress, and final results (`jsonData` or `markdownData`) if completed.
+
+*Note: This interface does not require separate authentication beyond the ability to execute the command.*
+
 ## License
 
 MIT

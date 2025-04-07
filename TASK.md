@@ -4,6 +4,7 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [x] Fix TypeScript errors in dashboardService.ts (Added: 2025-04-07)
 - [x] Fix `npm run dev` crash (Added: 2025-04-06)
 
 ### Project Setup
@@ -108,3 +109,15 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## Code Review
 - [x] Review the code base (Added: 2025-04-06)
+
+## MCP Integration (Added: 2025-04-07)
+
+- [ ] Implement MCP Server Interface
+    - [x] Add `@modelcontextprotocol/sdk` dependency (2025-04-07)
+    - [x] Create MCP server entry point (`src/mcp-server.ts`) (2025-04-07)
+    - [x] Define MCP tools (`scrape_url`, `start_crawl`, `get_crawl_job_result`) (2025-04-07)
+    - [x] Implement basic tool handlers (using existing services, placeholders for crawl results) (2025-04-07)
+    - [x] Add `bin` entry for `npx icecrawl-mcp` (replaces npm script) (2025-04-07)
+    - [x] Update documentation (`PLANNING.md`, `README.md`) (2025-04-07)
+    - [ ] Refine `scrape_url` HTML fetching (avoid double fetch)
+    - [ ] Implement `get_crawl_job_result` logic to fetch/format actual page data (requires schema relation or alternative)
