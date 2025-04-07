@@ -62,36 +62,58 @@ npm run build:dashboard
 
 ## Usage
 
-### HTTP API Server & Dashboard
+### Start Dashboard + MCP Server (default)
 
 ```bash
-icecrawl-server start
-# or
-npm start
-# or
-npm run dev
+icecrawl
 ```
 
-- Dashboard: http://localhost:6969/dashboard
-- API Docs: http://localhost:6969/api-docs
+- Dashboard: http://localhost:6971/dashboard
+- API Docs: http://localhost:6971/api-docs
+- MCP server runs concurrently for integrations.
 
-### CLI Tool
+### Start only the Dashboard server
 
 ```bash
-icecrawl url https://example.com
-icecrawl --help
-# or
-npm run cli url https://example.com
-npm run cli --help
+icecrawl dashboard
 ```
 
-### MCP Server
+### Start only the MCP server
 
 ```bash
-icecrawl-mcp
-# or
-node dist/mcp-server.js
+icecrawl mcp-server
 ```
+
+### Scraping via CLI
+
+```bash
+icecrawl scrape url https://example.com
+echo "https://example.com" | icecrawl scrape
+```
+
+See [docs/cli-usage.md](docs/cli-usage.md) for full CLI documentation and examples.
+
+---
+
+## Troubleshooting
+
+### Permission Denied Error when running `icecrawl`
+
+If you successfully install globally (`npm install -g icecrawl`) but get a **Permission denied** error when trying to run `icecrawl`, you may need to manually add execute permissions:
+
+1. Find your global npm bin directory:
+
+    ```bash
+    npm bin -g
+    ```
+
+2. Run the following command, replacing the path with the one found above:
+
+    ```bash
+    chmod +x /path/to/your/global/bin/icecrawl
+    ```
+
+This should resolve the permission issue.
 
 ---
 

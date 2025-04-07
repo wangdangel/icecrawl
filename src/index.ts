@@ -28,7 +28,7 @@ import { startWorker } from './core/worker'; // Import the worker starter functi
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 6970; // Changed default port to 6970
+const PORT = process.env.PORT || 6971; // Changed default port to 6971
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -71,8 +71,54 @@ app.use(session({
   }
 }));
 
-// Serve static files from the 'public' directory (using path.resolve), explicitly setting index
-app.use(express.static(path.resolve('public'), { index: 'index.html' }));
+// Serve static files relative to the script's directory (__dirname)
+// This ensures it works correctly when run globally
+const publicPath = path.join(__dirname, '../public');
+// Serve static assets (CSS, JS, images) from the public directory
+app.use(express.static(publicPath)); 
+
+// Explicitly serve dashboard index.html for /dashboard and /dashboard/ routes
+app.get('/dashboard(/)?', (req: Request, res: Response, next: NextFunction) => {
+  const dashboardIndexPath = path.join(publicPath, 'dashboard', 'index.html');
+  
+  // --- DIAGNOSTIC LOGGING ---
+  logger.info(`Dashboard route hit. Trying to serve: ${dashboardIndexPath}`);
+  try {
+    const fileExists = require('fs').existsSync(dashboardIndexPath);
+    logger.info(`Does dashboard index file exist at path? ${fileExists}`);
+    if (!fileExists) {
+       logger.error(`Dashboard index.html NOT FOUND at calculated path: ${dashboardIndexPath}`);
+       // Optionally list directory contents for debugging
+       try {
+         const parentDirContents = require('fs').readdirSync(path.dirname(dashboardIndexPath));
+         logger.info(`Contents of ${path.dirname(dashboardIndexPath)}: ${parentDirContents.join(', ')}`);
+         const publicDirContents = require('fs').readdirSync(publicPath);
+         logger.info(`Contents of ${publicPath}: ${publicDirContents.join(', ')}`);
+       } catch (readErr: any) {
+         logger.warn(`Could not read directory contents for debugging: ${readErr.message}`);
+       }
+    }
+  } catch (e: any) {
+      logger.error(`Error checking file existence: ${e.message}`);
+  }
+  // --- END DIAGNOSTIC LOGGING ---
+
+  res.sendFile(dashboardIndexPath, (err) => {
+    if (err) {
+      // If file not found or other error, pass to next error handler
+      // Log error was already added, keep it
+      logger.error(`Error sending dashboard index.html: ${err.message}`); 
+      // Ensure 404 is sent if file specifically not found, otherwise let default error handler run
+      if (err.message.includes('ENOENT')) { // ENOENT: Error NO ENTry (file not found)
+         res.status(404).send('Dashboard file not found.');
+      } else {
+         next(err); 
+      }
+    } else {
+       logger.info(`Successfully sent: ${dashboardIndexPath}`);
+    }
+  });
+});
 
 // REMOVED: Explicit redirect for /dashboard
 /*
@@ -106,9 +152,15 @@ const errorHandler = (err: Error, req: Request, res: Response, _next: NextFuncti
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// Serve login page directly
-app.get('/login', (req: Request, res: Response) => {
-  res.sendFile(path.resolve('public/login.html'));
+// Serve login page directly using the calculated public path
+app.get('/login', (req: Request, res: Response, next: NextFunction) => {
+  const loginPath = path.join(publicPath, 'login.html');
+   res.sendFile(loginPath, (err) => {
+    if (err) {
+      logger.error(`Error sending login.html: ${err.message}`);
+      next(err);
+    }
+  });
 });
 
 // API Routes - Apply rate limiter here
@@ -149,8 +201,7 @@ app.get('*', (req: Request, res: Response) => {
 // Apply error handler
 app.use(errorHandler);
 
-// Start the server
-if (process.env.NODE_ENV !== 'test') {
+export function startDashboardServer() {
   app.listen(PORT, () => {
     logger.info(`Web Scraper server running at http://localhost:${PORT}`);
     logger.info(`Dashboard UI available at http://localhost:${PORT}/dashboard`);
@@ -159,6 +210,11 @@ if (process.env.NODE_ENV !== 'test') {
     // Start the background worker after the server starts
     startWorker(); 
   });
+}
+
+// Start the server automatically only if run directly, not when imported
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+  startDashboardServer();
 }
 
 export default app;

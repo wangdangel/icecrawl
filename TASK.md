@@ -4,8 +4,16 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [x] Refactor CLI to support:
+  - Default command starts Dashboard + MCP server
+  - Subcommands: `dashboard`, `mcp-server`, `scrape`
+  - Updated documentation (`README.md`, `docs/cli-usage.md`)
+  - Improved global usability (Added: 2025-04-07)
+
 - [x] Fix TypeScript errors in dashboardService.ts (Added: 2025-04-07)
+- [ ] Publish patched version to npm, ensuring <code>scripts/global-postinstall.js</code> is included and runs on install (Added: 2025-04-07)
 - [x] Fix `npm run dev` crash (Added: 2025-04-06)
+- [x] Investigate unexpected port usage (e.g., using ports other than configured `PORT`) (Added: 2025-04-07) - *Finding: Other ports are likely ephemeral ports used internally by Puppeteer (BrowserService) for Chrome DevTools Protocol communication, which is expected behavior.*
 
 ### Maintenance (Added: 2025-04-07)
 - [x] Ensure Global Installation (`npm install -g icecrawl`) Works Smoothly

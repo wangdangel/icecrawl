@@ -374,8 +374,7 @@ class IceCrawlMcpServer {
   }
 }
 
-// Main execution
-(async () => {
+export async function startMcpServer() {
   try {
     const serverInstance = new IceCrawlMcpServer();
     await serverInstance.run();
@@ -383,4 +382,11 @@ class IceCrawlMcpServer {
     logger.error('Failed to start IceCrawl MCP server:', error);
     process.exit(1);
   }
-})();
+}
+
+// Only auto-start if run directly, not when imported
+if (require.main === module) {
+  startMcpServer();
+}
+
+export { IceCrawlMcpServer };

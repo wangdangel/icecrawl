@@ -13,7 +13,7 @@ export class BrowserService {
   static async initialize(): Promise<void> {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
-        headless: 'new',
+        headless: 'new' as any,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
       logger.info('Browser service initialized');
@@ -54,7 +54,7 @@ export class BrowserService {
       
       // Wait additional time if specified
       if (options.waitTime) {
-        await page.waitForTimeout(options.waitTime);
+        await (page as any).waitForTimeout(options.waitTime);
       }
       
       // Scroll to bottom if needed (for lazy-loaded content)
@@ -62,7 +62,7 @@ export class BrowserService {
         await page.evaluate(() => {
           window.scrollTo(0, document.body.scrollHeight);
         });
-        await page.waitForTimeout(2000);
+        await (page as any).waitForTimeout(2000);
       }
       
       // Execute custom evaluation script if provided
@@ -111,7 +111,7 @@ export class BrowserService {
       }
       
       if (options.waitTime) {
-        await page.waitForTimeout(options.waitTime);
+        await (page as any).waitForTimeout(options.waitTime);
       }
       
       return await page.screenshot({ 

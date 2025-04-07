@@ -1,9 +1,11 @@
 import request from 'supertest';
 import app from '../index';
 import { scrapeUrl } from '../core/scraper';
+import { authenticate } from '../middleware/authMiddleware'; // Import the middleware - Keep for type info if needed, but mock is removed
 
 // Mock dependencies
 jest.mock('../core/scraper');
+// REMOVED global middleware mock
 
 describe('API Endpoints', () => {
   beforeEach(() => {

@@ -36,6 +36,10 @@ prisma/.env
 *.db
 *.db-journal
 
+# Compiled seed script output
+prisma/seed.js
+prisma/seed.js.map
+
 # Temp files
 .tmp/
 temp/

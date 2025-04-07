@@ -100,16 +100,26 @@ export class Crawler {
 
       switch (this.domainScope) {
         case 'strict':
+          // Target must exactly match the starting hostname
           return targetHostname === this.startHostname;
         case 'parent':
+          // Target must match the starting hostname OR the extracted parent domain
+          // e.g., if start is www.example.com, allows www.example.com and example.com
           const targetParentDomain = this.extractParentDomain(targetHostname);
+          // Allow if it's the exact start host OR if it matches the extracted parent domain (and a parent domain exists)
+          // Allow if it's the exact start host OR if it matches the extracted parent domain (and a parent domain exists)
           return targetHostname === this.startHostname || (!!this.startDomain && targetHostname === this.startDomain);
         case 'subdomains':
-           const targetParent = this.extractParentDomain(targetHostname);
-           return !!this.startDomain && targetParent === this.startDomain;
+           // Target must be a subdomain of the starting hostname's parent domain, AND NOT the parent domain itself.
+           // e.g., start 'www.example.com', allows 'sub.example.com', 'www.example.com', but not 'example.com'
+           const targetParentForSub = this.extractParentDomain(targetHostname);
+           // Check if target parent matches start parent AND target is not the parent domain itself (unless it's the start host)
+           return !!this.startDomain && targetParentForSub === this.startDomain && (targetHostname === this.startHostname || targetHostname !== this.startDomain);
         case 'parent_subdomains':
-          const targetParentDomainForBoth = this.extractParentDomain(targetHostname);
-          return !!this.startDomain && targetParentDomainForBoth === this.startDomain;
+           // Target must match the starting hostname's parent domain OR be a subdomain of the parent domain.
+           // e.g., start 'www.example.com', allows 'example.com', 'www.example.com', 'sub.example.com'
+           const targetParentForBoth = this.extractParentDomain(targetHostname);
+           return !!this.startDomain && targetParentForBoth === this.startDomain;
         case 'none':
           return true; // No restriction
         default:
@@ -173,8 +183,11 @@ export class Crawler {
     // --- Retry Phase ---
     if (this.failedUrls.size > 0) {
       logger.info({ message: 'Starting retry phase for failed URLs', jobId: this.job.id, count: this.failedUrls.size });
-      const retryUrls = Array.from(this.failedUrls); // Copy to avoid modifying set while iterating
-      this.failedUrls.clear(); // Clear original set, will re-add if retry fails
+      const retryUrls = Array.from(this.failedUrls); 
+      this.failedUrls.clear(); // Clear original set, processPage will re-add if retry fails
+
+      // Remove URLs from visited set before retrying
+      retryUrls.forEach(url => this.visited.delete(url)); 
 
       const retryPromises = retryUrls.map(url => this.processPage(url, 0, true)); // Retry at depth 0, mark as retry
       await Promise.all(retryPromises);
