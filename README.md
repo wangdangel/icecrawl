@@ -22,6 +22,14 @@ A powerful web scraping application offering multiple interfaces: HTTP API (with
 - **JS Rendering**: Optional headless browser usage via Puppeteer.
 - *And more: Content Transformation, Exporting, Scheduled Jobs...*
 
+### Sitemap Generation Mode
+
+- Crawl an entire website to **build a hierarchical sitemap** of all internal links.
+- Does **not** save page content or extract text.
+- Useful for **visualizing site structure**, auditing SEO, or link analysis.
+- Enable by setting crawl option `"mode": "sitemap"` via API or CLI.
+- The sitemap is saved as JSON in the crawl job record and can be retrieved via API.
+
 ---
 
 ## Installation

@@ -80,6 +80,24 @@ function renderCrawlDetails(details) {
     html += `<h2>Scraped Content (Markdown)</h2><pre>${escapeHtml(details.mcpResult.markdownData)}</pre>`;
   }
 
+  if (details.options?.mode === 'sitemap' && details.sitemap) {
+    let sitemapObj;
+    try {
+      sitemapObj = typeof details.sitemap === 'string' ? JSON.parse(details.sitemap) : details.sitemap;
+    } catch {
+      sitemapObj = null;
+    }
+    if (sitemapObj) {
+      html += `<h2>Sitemap</h2>
+      <input type="text" id="sitemap-search" placeholder="Search sitemap..." style="margin-bottom:5px;">
+      <button onclick="expandAllSitemap()">Expand All</button>
+      <button onclick="collapseAllSitemap()">Collapse All</button>`;
+      html += renderSitemapTree(sitemapObj, new Set(details.failedUrls || []));
+    } else {
+      html += `<h2>Sitemap JSON</h2><pre>${escapeHtml(typeof details.sitemap === 'string' ? details.sitemap : JSON.stringify(details.sitemap, null, 2))}</pre>`;
+    }
+  }
+
   document.getElementById('crawl-details').innerHTML = html;
 
   document.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -88,6 +106,63 @@ function renderCrawlDetails(details) {
       const contentDiv = document.getElementById('content-' + idx);
       contentDiv.style.display = contentDiv.style.display === 'block' ? 'none' : 'block';
     });
+  });
+
+  const searchInput = document.getElementById('sitemap-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim().toLowerCase();
+      console.log('Sitemap search query:', query);
+      const links = document.querySelectorAll('#crawl-details ul li a');
+      console.log('Found', links.length, 'links');
+      links.forEach(link => {
+        if (!query) {
+          link.style.backgroundColor = '';
+        } else if (link.textContent.toLowerCase().includes(query)) {
+          link.style.backgroundColor = 'yellow';
+        } else {
+          link.style.backgroundColor = '';
+        }
+      });
+    });
+  }
+}
+
+function renderSitemapTree(node, failedSet) {
+  let html = '<ul>';
+  html += `<li>`;
+  const isFailed = failedSet.has(node.url);
+  if (node.children && node.children.length > 0) {
+    const id = Math.random().toString(36).substr(2, 9);
+    html += `<button onclick="window.toggleSitemapNode('${id}')" style="margin-right:5px;">[+]</button>`;
+    html += `<a href="${node.url}" target="_blank" style="${isFailed ? 'color:red;' : ''}">${node.title || node.url}</a>`;
+    html += `<div id="${id}" style="display:none; margin-left:15px;">`;
+    node.children.forEach(child => {
+      html += renderSitemapTree(child, failedSet);
+    });
+    html += `</div>`;
+  } else {
+    html += `<a href="${node.url}" target="_blank" style="${isFailed ? 'color:red;' : ''}">${node.title || node.url}</a>`;
+  }
+  html += '</li></ul>';
+  return html;
+}
+
+window.toggleSitemapNode = function(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function expandAllSitemap() {
+  document.querySelectorAll('#crawl-details div[id]').forEach(div => {
+    div.style.display = 'block';
+  });
+}
+
+function collapseAllSitemap() {
+  document.querySelectorAll('#crawl-details div[id]').forEach(div => {
+    div.style.display = 'none';
   });
 }
 

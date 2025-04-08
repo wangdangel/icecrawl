@@ -136,6 +136,7 @@ model CrawlJob {
   failedUrls   String?   // Store as JSON string because SQLite doesn't support String[]
   processedUrls Int      @default(0) // Count of successfully processed URLs
   foundUrls    Int      @default(0) // Count of total URLs found within scope
+  sitemap      String?   // JSON string representing the sitemap structure
 
   scrapedPages ScrapedPage[] // Relation to all pages crawled in this job
 

@@ -156,18 +156,36 @@ async function processScrapeJob(job: any) { // Use 'any' or rely on inference
 }
 
 // New function for processing crawl jobs
-async function processCrawlJob(job: any) { // Use 'any' or rely on inference
+import { SitemapCrawler } from './sitemapCrawler';
+
+async function processCrawlJob(job: any) {
   logger.info(`Processing crawl job ${job.id} for start URL: ${job.startUrl}`);
   try {
-    const crawler = new Crawler(job);
-    const result = await crawler.run(); // Crawler handles its own status updates internally
+    let options: any = {};
+    if (job.options) {
+      try {
+        options = JSON.parse(job.options);
+      } catch (e) {
+        logger.warn({ message: 'Failed to parse crawl job options JSON', jobId: job.id, error: e });
+      }
+    }
+
+    const mode = options.mode || 'content';
+    let crawler;
+    if (mode === 'sitemap') {
+      logger.info({ message: 'Starting sitemap crawl mode', jobId: job.id });
+      crawler = new SitemapCrawler(job);
+    } else {
+      crawler = new Crawler(job);
+    }
+
+    const result = await crawler.run();
 
     logger.info({ message: `Crawl job ${job.id} finished`, status: result.status, failedCount: result.failedUrls.length });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error during crawl';
     logger.error({ message: `Fatal error processing crawl job ${job.id}`, error: errorMessage, startUrl: job.startUrl });
-    // Update job status to failed on fatal error
     try {
       await prisma.crawlJob.update({
         where: { id: job.id },

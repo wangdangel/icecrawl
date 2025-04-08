@@ -16,6 +16,7 @@ const startCrawlSchema = z.object({
   // Add other options if needed (e.g., specific cache/timeout/retry for the crawl)
   useCache: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
+  mode: z.enum(['content', 'sitemap']).optional().default('content'), // New: crawl mode
 });
 
 // Helper to call MCP tool get_crawl_job_result
@@ -245,6 +246,19 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
     // Fetch the crawl job
     const job = await prisma.crawlJob.findUnique({
       where: { id: jobId },
+      select: {
+        id: true,
+        startUrl: true,
+        status: true,
+        startTime: true,
+        endTime: true,
+        processedUrls: true,
+        foundUrls: true,
+        failedUrls: true,
+        options: true,
+        sitemap: true,
+        userId: true
+      }
     });
 
     if (!job) {
@@ -297,6 +311,7 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
         foundUrls: job.foundUrls,
         failedUrls: failedUrlsList,
         options: JSON.parse(job.options || '{}'),
+        sitemap: job.sitemap,
         totalPages: pages.length,
         pages,
         mcpResult, // include full MCP crawl result (markdownData, etc.)

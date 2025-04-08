@@ -298,6 +298,15 @@ class CrawlController {
     } else {
       content += `<p>No crawl content available.</p>`;
     }
+
+    // Show sitemap JSON if available
+    if (details.options?.mode === 'sitemap' && details.sitemap) {
+      content += `
+        <h3>Sitemap JSON</h3>
+        <pre style="max-height:400px;overflow:auto;background:#f0f0f0;padding:10px;">
+${escapeHtml(typeof details.sitemap === 'string' ? details.sitemap : JSON.stringify(details.sitemap, null, 2))}
+        </pre>`;
+    }
     
     const modalWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes');
     modalWindow.document.write(`

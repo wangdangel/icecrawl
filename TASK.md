@@ -4,6 +4,13 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [ ] Implement Sitemap Generation Feature (Added: 2025-04-07)
+    - Create a new crawl mode that discovers all internal links within a domain.
+    - Instead of saving page content, it builds a hierarchical sitemap structure.
+    - Expose via API, CLI, and MCP interfaces.
+    - Add UI option in Dashboard to trigger sitemap crawl and view results.
+    - Store sitemap data in DB or generate on-demand.
+
 - [ ] Review and improve Transform Content pipeline (Added: 2025-04-07)
     - Review backend transformer modules (`src/transformers/`)
     - Review dashboard UI for content transformation

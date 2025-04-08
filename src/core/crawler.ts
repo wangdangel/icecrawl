@@ -6,43 +6,40 @@ import { scrapeUrl, ScrapedData } from './scraper';
 import { MarkdownService } from '../services/markdownService';
 import { requestPool } from '../utils/requestPool'; // Use request pool for concurrency
 
-// Define types for crawl options and job data
-type DomainScope = "strict" | "parent" | "subdomains" | "parent_subdomains" | "none";
+export type DomainScope = "strict" | "parent" | "subdomains" | "parent_subdomains" | "none";
 
-interface CrawlJobOptions {
+export interface CrawlJobOptions {
   maxDepth?: number | null;
   domainScope?: DomainScope;
   useBrowser?: boolean;
-  // Add other relevant options from scrapeUrl if needed (timeout, retries, cache?)
   timeout?: number;
   retries?: number;
   useCache?: boolean;
 }
 
-// Interface matching the CrawlJob model structure (adapt as needed)
-interface CrawlJobData {
+export interface CrawlJobData {
   id: string;
   startUrl: string;
   status: string;
   options?: string | null;
   userId?: string | null;
-  failedUrls?: string | null; // Stored as JSON string
+  failedUrls?: string | null;
   processedUrls: number;
   foundUrls: number;
 }
 
 export class Crawler {
-  private job: CrawlJobData;
-  private options: CrawlJobOptions;
-  private queue: { url: string; depth: number; parentUrl: string | null }[] = [];
-  private visited: Set<string> = new Set();
-  private failedUrls: Set<string> = new Set();
-  private processedCount = 0;
-  private foundCount = 0;
-  private startHostname: string;
-  private startDomain: string | null; // e.g., example.com
-  private maxDepth: number | null = null;
-  private domainScope: DomainScope = 'strict';
+  protected job: CrawlJobData;
+  protected options: CrawlJobOptions;
+  protected queue: { url: string; depth: number; parentUrl: string | null }[] = [];
+  protected visited: Set<string> = new Set();
+  protected failedUrls: Set<string> = new Set();
+  protected processedCount = 0;
+  protected foundCount = 0;
+  protected startHostname: string;
+  protected startDomain: string | null; // e.g., example.com
+  protected maxDepth: number | null = null;
+  protected domainScope: DomainScope = 'strict';
 
   constructor(job: CrawlJobData) {
     this.job = job;
@@ -70,7 +67,7 @@ export class Crawler {
     }
   }
 
-  private parseOptions(optionsString?: string | null): CrawlJobOptions {
+  protected parseOptions(optionsString?: string | null): CrawlJobOptions {
     if (!optionsString) return {};
     try {
       return JSON.parse(optionsString);
@@ -80,7 +77,7 @@ export class Crawler {
     }
   }
 
-  private extractParentDomain(hostname: string): string | null {
+  protected extractParentDomain(hostname: string): string | null {
     const parts = hostname.split('.');
     // Basic check for common TLDs, not exhaustive (consider using a library like psl for robustness)
     if (parts.length >= 2) {
@@ -93,7 +90,7 @@ export class Crawler {
     return null;
   }
 
-  private isWithinScope(url: string): boolean {
+  protected isWithinScope(url: string): boolean {
     try {
       const parsedUrl = new URL(url);
       const targetHostname = parsedUrl.hostname;
@@ -131,10 +128,19 @@ export class Crawler {
     }
   }
 
-  private normalizeUrl(url: string, baseUrl: string): string | null {
+  protected normalizeUrl(url: string, baseUrl: string): string | null {
     try {
       const absoluteUrl = new URL(url, baseUrl);
       absoluteUrl.hash = '';
+
+      // Remove query parameters
+      absoluteUrl.search = '';
+
+      // Deduplicate .html vs no extension
+      if (absoluteUrl.pathname.endsWith('.html')) {
+        absoluteUrl.pathname = absoluteUrl.pathname.slice(0, -5);
+      }
+
       const normalized = absoluteUrl.toString();
       logger.debug({ message: 'Normalized URL', url, baseUrl, normalized });
       return normalized;
@@ -144,7 +150,7 @@ export class Crawler {
     }
   }
 
-  private addToQueue(url: string, depth: number, parentUrl: string | null): void {
+  protected addToQueue(url: string, depth: number, parentUrl: string | null): void {
     if (this.maxDepth !== null && depth > this.maxDepth) {
       logger.debug({ message: 'Skipping URL due to maxDepth', url, depth, maxDepth: this.maxDepth, jobId: this.job.id });
       return; // Exceeded max depth
@@ -211,7 +217,7 @@ export class Crawler {
     return { status: finalStatus, failedUrls: Array.from(this.failedUrls) };
   }
 
-  private async processPage(url: string, depth: number, parentUrl: string | null, isRetry = false): Promise<void> {
+  protected async processPage(url: string, depth: number, parentUrl: string | null, isRetry = false): Promise<void> {
     if (this.visited.has(url)) {
       return;
     }
@@ -228,12 +234,33 @@ export class Crawler {
 
       logger.debug({ message: 'Fetched page content snippet', url, snippet: scrapedData.content?.substring(0, 500), jobId: this.job.id });
 
+      // Parse canonical URL if present
+      let canonicalUrl: string | null = null;
+      try {
+        if (scrapedData.content) {
+          const $ = cheerio.load(scrapedData.content);
+          const canonicalLink = $('link[rel="canonical"]').attr('href');
+          if (canonicalLink) {
+            const normalizedCanonical = this.normalizeUrl(canonicalLink, url);
+            if (normalizedCanonical) {
+              canonicalUrl = normalizedCanonical;
+              logger.debug({ message: 'Found canonical URL', url, canonicalUrl, jobId: this.job.id });
+            }
+          }
+        }
+      } catch (e) {
+        logger.warn({ message: 'Failed to parse canonical URL', url, error: e });
+      }
+
+      const redirectedUrl = this.normalizeUrl(scrapedData.url, url) || url;
+      const effectiveUrl = canonicalUrl || redirectedUrl;
+
       // # Reason: Convert extracted content to Markdown.
-      const markdownContent = MarkdownService.convertHtmlToMarkdown(scrapedData.content, url);
+      const markdownContent = MarkdownService.convertHtmlToMarkdown(scrapedData.content, effectiveUrl);
 
       // # Reason: Store results (including Markdown) in the database.
       await prisma.scrapedPage.upsert({
-        where: { url: scrapedData.url },
+        where: { url: effectiveUrl },
         update: {
           title: scrapedData.title,
           content: scrapedData.content || '',
@@ -244,7 +271,7 @@ export class Crawler {
           updatedAt: new Date(),
         },
         create: {
-          url: scrapedData.url,
+          url: effectiveUrl,
           title: scrapedData.title,
           content: scrapedData.content || '',
           metadata: JSON.stringify(scrapedData.metadata),
@@ -262,12 +289,12 @@ export class Crawler {
       const links = (scrapedData.metadata?.links as Array<{ href: string; text: string }>) || [];
       logger.debug({ message: 'Using pre-extracted links count', count: links.length, url, jobId: this.job.id });
       for (const link of links) {
-        const normalized = this.normalizeUrl(link.href, url);
-        logger.debug({ message: 'Found link', href: link.href, normalized, fromUrl: url, jobId: this.job.id });
+        const normalized = this.normalizeUrl(link.href, effectiveUrl);
+        logger.debug({ message: 'Found link', href: link.href, normalized, fromUrl: effectiveUrl, jobId: this.job.id });
         if (normalized) {
-          this.addToQueue(normalized, depth + 1, url);
+          this.addToQueue(normalized, depth + 1, effectiveUrl);
         } else {
-          logger.debug({ message: 'Skipping link due to normalization failure', href: link.href, fromUrl: url, jobId: this.job.id });
+          logger.debug({ message: 'Skipping link due to normalization failure', href: link.href, fromUrl: effectiveUrl, jobId: this.job.id });
         }
       }
 
@@ -279,7 +306,7 @@ export class Crawler {
     }
   }
 
-  private async updateJobStatus(status: string, finished = false): Promise<void> {
+  protected async updateJobStatus(status: string, finished = false): Promise<void> {
     try {
       const data: any = {
         status,

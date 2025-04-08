@@ -174,6 +174,7 @@ async function submitNewCrawl(controllers) {
     const maxDepthInput = document.getElementById('crawl-max-depth');
     const domainScope = document.getElementById('crawl-domain-scope').value;
     const useBrowser = document.getElementById('crawl-browser').checked;
+    const mode = document.getElementById('crawl-mode')?.value || 'content';
     
     if (!startUrl) {
       alert('Please enter a Start URL');
@@ -189,7 +190,8 @@ async function submitNewCrawl(controllers) {
       startUrl,
       maxDepth,
       domainScope,
-      useBrowser
+      useBrowser,
+      mode
     });
     
     hideNewCrawlModal();

@@ -734,6 +734,17 @@
                     </div>
 
                     <div class="mt-4">
+                      <label for="crawl-mode" class="block text-sm font-medium text-gray-700">Crawl Mode</label>
+                      <div class="mt-1">
+                        <select id="crawl-mode" name="mode" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                          <option value="content" selected>Content Extraction (default)</option>
+                          <option value="sitemap">Sitemap Only</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Choose "Sitemap Only" to build a link map without saving page content.</p>
+                      </div>
+                    </div>
+
+                    <div class="mt-4">
                       <label class="block text-sm font-medium text-gray-700">Options</label>
                       <div class="mt-2">
                         <div class="flex items-start">
