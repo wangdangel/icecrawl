@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../db/prismaClient';
 import logger from '../utils/logger';
 import { authenticate } from '../middleware/authMiddleware'; // Assuming JWT/Session auth needed
+import { useMcpTool } from '../utils/mcpClient'; // We'll create this helper next
 
 const router = Router();
 
@@ -16,6 +17,17 @@ const startCrawlSchema = z.object({
   useCache: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
 });
+
+// Helper to call MCP tool get_crawl_job_result
+async function callGetCrawlJobResult(jobId: string): Promise<any | null> {
+  try {
+    const result = await useMcpTool('icecrawl-mcp', 'get_crawl_job_result', { jobId });
+    return result;
+  } catch (error) {
+    logger.warn({ message: 'Failed to fetch crawl job result from MCP', jobId, error });
+    return null;
+  }
+}
 
 // Validation schema for getting crawl results
 const getCrawlResultSchema = z.object({
@@ -241,59 +253,7 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
 
     // Optional: Check ownership (if jobs are user-specific)
     if (job.userId && job.userId !== userId) {
-       // Allow admins to view any job? Or strict ownership? Assuming strict for now.
-       // const isAdmin = req.user!.role === 'admin';
-       // if (!isAdmin) {
-          return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
-       // }
-    }
-
-    let results: Record<string, any> | null = null;
-
-    // If job is completed, fetch results
-    if (job.status === 'completed' || job.status === 'completed_with_errors') {
-      // Find all ScrapedPage records associated with this crawl
-      // NOTE: This assumes ScrapedPage is updated by the crawler.
-      // A more robust way might be to link ScrapedPage directly to CrawlJob
-      // or query based on URLs found during the crawl (if stored).
-      // For now, we query all pages potentially touched by the crawl (less precise).
-      // A better approach would be needed for large scale.
-      // Let's assume for now we just return the job status and failed URLs.
-      // Fetching all results might be too large/slow.
-      // We will return an empty results object for now.
-      // TODO: Implement a more scalable way to retrieve results, possibly paginated
-      // or linked directly via relation.
-
-      results = {}; // Placeholder
-
-      // Example: Fetching associated ScrapedPages (Needs refinement)
-      /*
-      const scrapedPages = await prisma.scrapedPage.findMany({
-         where: {
-           // How to link? Maybe store scraped page IDs in CrawlJob?
-           // Or query by URL list if stored?
-           // For now, this part is complex to implement efficiently without schema changes.
-         }
-      });
-
-      results = {};
-      scrapedPages.forEach(page => {
-        const pageData: any = {
-           title: page.title,
-           metadata: JSON.parse(page.metadata || '{}'),
-           scrapedAt: page.updatedAt, // or createdAt?
-        };
-        if (format === 'json' || format === 'both') {
-           pageData.markdown = page.markdownContent;
-        }
-        if (format === 'markdown') {
-           results![page.url] = page.markdownContent || '';
-        } else {
-           results![page.url] = pageData;
-        }
-      });
-      */
-
+      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
     }
 
     // Parse failed URLs
@@ -306,6 +266,24 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
       logger.warn({ message: 'Failed to parse failedUrls for job result', jobId: job.id, error: e });
     }
 
+    // Call MCP tool to get full crawl result (may include markdownData)
+    const mcpResult = await callGetCrawlJobResult(jobId);
+
+    // Fetch all scraped pages for this crawl job
+    const pages = await prisma.scrapedPage.findMany({
+      where: { crawlJobId: jobId },
+      select: {
+        id: true,
+        url: true,
+        title: true,
+        content: true,
+        metadata: true,
+        markdownContent: true,
+        parentUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     return res.status(200).json({
       status: 'success',
@@ -319,7 +297,9 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
         foundUrls: job.foundUrls,
         failedUrls: failedUrlsList,
         options: JSON.parse(job.options || '{}'),
-        results: results, // Placeholder for actual results
+        totalPages: pages.length,
+        pages,
+        mcpResult, // include full MCP crawl result (markdownData, etc.)
       },
     });
 
@@ -353,5 +333,36 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
  *           format: date-time
  */
 
+
+/**
+ * DELETE /api/crawl/:jobId
+ * Deletes a crawl job and its associated scraped pages
+ */
+router.delete('/:jobId', authenticate, async (req, res, next) => {
+  try {
+    const jobId = req.params.jobId;
+    const userId = req.user!.id;
+
+    const job = await prisma.crawlJob.findUnique({ where: { id: jobId } });
+    if (!job) {
+      return res.status(404).json({ status: 'error', message: 'Crawl job not found' });
+    }
+
+    if (job.userId && job.userId !== userId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
+    }
+
+    // Delete associated scraped pages
+    await prisma.scrapedPage.deleteMany({ where: { crawlJobId: jobId } });
+
+    // Delete the crawl job
+    await prisma.crawlJob.delete({ where: { id: jobId } });
+
+    return res.json({ status: 'success', message: 'Crawl job and associated pages deleted' });
+  } catch (error) {
+    logger.error({ message: 'Error deleting crawl job', jobId: req.params.jobId, error });
+    next(error);
+  }
+});
 
 export default router;

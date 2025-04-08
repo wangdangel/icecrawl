@@ -4,6 +4,16 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [x] Fix crawler extracting 0 links during crawl jobs (Added: 2025-04-07)
+    - Logs show `"Extracted links count": 0` even for pages known to have links.
+    - This prevents the crawler from finding subsequent pages to crawl.
+    - Single-page scrapes *do* extract links correctly, suggesting the issue is specific to the crawl process integration.
+    - **Resolution**: Modified `src/core/crawler.ts` to use `scrapedData.metadata.links` instead of re-extracting from potentially stripped `scrapedData.content`.
+- [ ] Fix crawler not respecting crawl depth setting (Added: 2025-04-07)
+    - When starting a crawl via the dashboard or API, the crawler only scrapes the initial page regardless of the crawl depth specified.
+    - The crawler should follow links up to the specified depth.
+    - Investigate if crawl options are saved and passed correctly, and ensure the `maxDepth` is respected.
+
 - [x] Refactor CLI to support:
   - Default command starts Dashboard + MCP server
   - Subcommands: `dashboard`, `mcp-server`, `scrape`

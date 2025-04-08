@@ -34,7 +34,7 @@ interface CrawlJobData {
 export class Crawler {
   private job: CrawlJobData;
   private options: CrawlJobOptions;
-  private queue: { url: string; depth: number }[] = [];
+  private queue: { url: string; depth: number; parentUrl: string | null }[] = [];
   private visited: Set<string> = new Set();
   private failedUrls: Set<string> = new Set();
   private processedCount = 0;
@@ -55,7 +55,7 @@ export class Crawler {
     this.startDomain = this.extractParentDomain(this.startHostname);
 
     // Initialize queue with start URL
-    this.addToQueue(this.job.startUrl, 0);
+    this.addToQueue(this.job.startUrl, 0, null);
 
     // Initialize failed URLs from job data
     if (this.job.failedUrls) {
@@ -133,32 +133,41 @@ export class Crawler {
 
   private normalizeUrl(url: string, baseUrl: string): string | null {
     try {
-      // Resolve relative URLs and remove fragments (#)
       const absoluteUrl = new URL(url, baseUrl);
-      absoluteUrl.hash = ''; // Remove fragment
-      return absoluteUrl.toString();
+      absoluteUrl.hash = '';
+      const normalized = absoluteUrl.toString();
+      logger.debug({ message: 'Normalized URL', url, baseUrl, normalized });
+      return normalized;
     } catch (e) {
       logger.warn({ message: 'Failed to normalize URL', url, baseUrl, error: e });
       return null;
     }
   }
 
-  private addToQueue(url: string, depth: number): void {
-     // # Reason: Check depth limit before adding to queue.
+  private addToQueue(url: string, depth: number, parentUrl: string | null): void {
     if (this.maxDepth !== null && depth > this.maxDepth) {
+      logger.debug({ message: 'Skipping URL due to maxDepth', url, depth, maxDepth: this.maxDepth, jobId: this.job.id });
       return; // Exceeded max depth
     }
 
-    // # Reason: Check domain scope before adding to queue.
     if (!this.isWithinScope(url)) {
+      logger.debug({ message: 'Skipping URL outside scope', url, jobId: this.job.id });
       return; // Outside allowed scope
     }
 
-    // # Reason: Avoid adding already visited or queued URLs.
-    if (!this.visited.has(url) && !this.queue.some(item => item.url === url)) {
-      this.queue.push({ url, depth });
-      this.foundCount++;
+    if (this.visited.has(url)) {
+      logger.debug({ message: 'Skipping URL already visited', url, jobId: this.job.id });
+      return;
     }
+
+    if (this.queue.some(item => item.url === url)) {
+      logger.debug({ message: 'Skipping URL already in queue', url, jobId: this.job.id });
+      return;
+    }
+
+    this.queue.push({ url, depth, parentUrl });
+    this.foundCount++;
+    logger.debug({ message: 'Added URL to queue', url, depth, parentUrl, jobId: this.job.id });
   }
 
   public async run(): Promise<{ status: string; failedUrls: string[] }> {
@@ -171,7 +180,7 @@ export class Crawler {
       // # Reason: Process queue in batches matching the default request pool concurrency (5).
       const batchSize = 5; // Use the default concurrency of the requestPool
       const batch = this.queue.splice(0, batchSize);
-      const promises = batch.map(item => this.processPage(item.url, item.depth));
+      const promises = batch.map(item => this.processPage(item.url, item.depth, item.parentUrl));
       await Promise.all(promises); // Wait for the batch to complete
 
       // Update progress after each batch
@@ -189,7 +198,7 @@ export class Crawler {
       // Remove URLs from visited set before retrying
       retryUrls.forEach(url => this.visited.delete(url)); 
 
-      const retryPromises = retryUrls.map(url => this.processPage(url, 0, true)); // Retry at depth 0, mark as retry
+      const retryPromises = retryUrls.map(url => this.processPage(url, 0, null, true)); // Retry at depth 0, mark as retry
       await Promise.all(retryPromises);
 
       logger.info({ message: 'Retry phase completed', jobId: this.job.id, remainingFailed: this.failedUrls.size });
@@ -202,7 +211,7 @@ export class Crawler {
     return { status: finalStatus, failedUrls: Array.from(this.failedUrls) };
   }
 
-  private async processPage(url: string, depth: number, isRetry = false): Promise<void> {
+  private async processPage(url: string, depth: number, parentUrl: string | null, isRetry = false): Promise<void> {
     if (this.visited.has(url)) {
       return;
     }
@@ -211,11 +220,13 @@ export class Crawler {
     try {
       // # Reason: Use scrapeUrl to fetch and parse, applying job options.
       const scrapedData: ScrapedData = await scrapeUrl(url, {
-        useCache: this.options.useCache, // Pass relevant options
+        useCache: false, // Force fresh fetch to avoid stale/minimal cached content
         timeout: this.options.timeout,
         retries: 0, // Disable scrapeUrl's internal retries, worker handles retry phase
         useBrowser: this.options.useBrowser,
       });
+
+      logger.debug({ message: 'Fetched page content snippet', url, snippet: scrapedData.content?.substring(0, 500), jobId: this.job.id });
 
       // # Reason: Convert extracted content to Markdown.
       const markdownContent = MarkdownService.convertHtmlToMarkdown(scrapedData.content, url);
@@ -228,6 +239,8 @@ export class Crawler {
           content: scrapedData.content || '',
           metadata: JSON.stringify(scrapedData.metadata),
           markdownContent: markdownContent, // Save markdown
+          crawlJobId: this.job.id,
+          parentUrl: parentUrl,
           updatedAt: new Date(),
         },
         create: {
@@ -237,23 +250,26 @@ export class Crawler {
           metadata: JSON.stringify(scrapedData.metadata),
           markdownContent: markdownContent, // Save markdown
           userId: this.job.userId,
-          // Note: We might want to link ScrapedPage to CrawlJob as well
+          crawlJobId: this.job.id,
+          parentUrl: parentUrl,
         },
       });
 
       this.processedCount++;
 
-      // # Reason: Extract links and add valid ones to the queue for further crawling.
-      const $ = cheerio.load(scrapedData.content); // Load content to extract links
-      $('a[href]').each((_, element) => {
-        const href = $(element).attr('href');
-        if (href) {
-          const normalized = this.normalizeUrl(href, url);
-          if (normalized) {
-            this.addToQueue(normalized, depth + 1);
-          }
+      // # Reason: Use pre-extracted links from metadata and add valid ones to the queue.
+      // Avoid re-parsing potentially stripped content.
+      const links = (scrapedData.metadata?.links as Array<{ href: string; text: string }>) || [];
+      logger.debug({ message: 'Using pre-extracted links count', count: links.length, url, jobId: this.job.id });
+      for (const link of links) {
+        const normalized = this.normalizeUrl(link.href, url);
+        logger.debug({ message: 'Found link', href: link.href, normalized, fromUrl: url, jobId: this.job.id });
+        if (normalized) {
+          this.addToQueue(normalized, depth + 1, url);
+        } else {
+          logger.debug({ message: 'Skipping link due to normalization failure', href: link.href, fromUrl: url, jobId: this.job.id });
         }
-      });
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error processing page';

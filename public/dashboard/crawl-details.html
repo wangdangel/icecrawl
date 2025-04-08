@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Crawl Job Details</title>
+<style>
+body { font-family: sans-serif; margin: 20px; }
+h2 { margin-top: 20px; }
+pre { background: #f9f9f9; padding: 10px; max-height: 400px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+ul { list-style-type: none; padding-left: 20px; }
+li { margin-bottom: 10px; }
+.toggle-content { display: none; margin-top: 5px; }
+button.toggle-btn { margin-top: 5px; }
+</style>
+</head>
+<body>
+<h1>Crawl Job Details</h1>
+<div id="crawl-details">Loading...</div>
+
+<script>
+async function loadCrawlDetails() {
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get('id');
+  if (!jobId) {
+    document.getElementById('crawl-details').innerText = 'No job ID provided.';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/crawl/' + jobId, {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    if (!response.ok) throw new Error('Failed to fetch crawl job details');
+    const result = await response.json();
+    if (result.status !== 'success') throw new Error(result.message || 'Failed to fetch crawl job details');
+    renderCrawlDetails(result.data);
+  } catch (error) {
+    document.getElementById('crawl-details').innerText = 'Error: ' + error.message;
+  }
+}
+
+function renderCrawlDetails(details) {
+  let html = `
+  <h2>Metadata</h2>
+  <p><strong>Job ID:</strong> ${details.jobId}</p>
+  <p><strong>Status:</strong> ${details.jobStatus}</p>
+  <p><strong>Start URL:</strong> <a href="${details.startUrl}" target="_blank">${details.startUrl}</a></p>
+  <p><strong>Processed URLs:</strong> ${details.processedUrls}</p>
+  <p><strong>Found URLs:</strong> ${details.foundUrls}</p>
+  <p><strong>Total Pages:</strong> ${details.totalPages || 0}</p>
+  <p><strong>Start Time:</strong> ${details.startTime || 'N/A'}</p>
+  <p><strong>End Time:</strong> ${details.endTime || 'N/A'}</p>
+  <p><strong>Failed URLs:</strong> ${details.failedUrls && details.failedUrls.length ? details.failedUrls.join(', ') : 'None'}</p>
+  `;
+
+  if (details.pages && details.pages.length > 0) {
+    html += `<h2>Scraped Pages (${details.pages.length})</h2>`;
+    details.pages.forEach((page, idx) => {
+      html += `
+      <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+        <strong><a href="${page.url}" target="_blank">${page.title || page.url}</a></strong><br/>
+        <em>Parent:</em> ${page.parentUrl || 'None'}<br/>
+        <button class="toggle-btn" data-idx="${idx}">Toggle Content</button>
+        <div class="toggle-content" id="content-${idx}">
+          <pre>${escapeHtml(page.content)}</pre>
+        </div>
+      </div>`;
+    });
+  } else {
+    html += `<p>No individual pages saved for this crawl.</p>`;
+  }
+
+  if (details.pages && details.pages.length > 0) {
+    const tree = buildCrawlTree(details.pages, details.startUrl);
+    html += `<h2>Crawl Hierarchy</h2>`;
+    html += renderCrawlTree(tree);
+  }
+
+  if (details.mcpResult && details.mcpResult.markdownData) {
+    html += `<h2>Scraped Content (Markdown)</h2><pre>${escapeHtml(details.mcpResult.markdownData)}</pre>`;
+  }
+
+  document.getElementById('crawl-details').innerHTML = html;
+
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = btn.getAttribute('data-idx');
+      const contentDiv = document.getElementById('content-' + idx);
+      contentDiv.style.display = contentDiv.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+}
+
+function buildCrawlTree(pages, rootUrl) {
+  const map = {};
+  pages.forEach(p => {
+    map[p.url] = { ...p, children: [] };
+  });
+  const treeRoot = { url: rootUrl, children: [] };
+  Object.values(map).forEach(node => {
+    if (node.parentUrl && map[node.parentUrl]) {
+      map[node.parentUrl].children.push(node);
+    } else if (node.url === rootUrl) {
+      treeRoot.children.push(node);
+    } else {
+      treeRoot.children.push(node);
+    }
+  });
+  return treeRoot;
+}
+
+function renderCrawlTree(node) {
+  let html = `<ul>`;
+  if (node.url) {
+    html += `<li><a href="${node.url}" target="_blank">${node.title || node.url}</a>`;
+  }
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      html += renderCrawlTree(child);
+    });
+  }
+  if (node.url) {
+    html += `</li>`;
+  }
+  html += `</ul>`;
+  return html;
+}
+
+loadCrawlDetails();
+</script>
+</body>
+</html>

@@ -22,6 +22,11 @@ model ScrapedPage {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   tags      Tag[]    @relation("PageToTag")
 
+  crawlJobId String? 
+  crawlJob   CrawlJob? @relation(fields: [crawlJobId], references: [id], onDelete: Cascade)
+
+  parentUrl String? // For crawl hierarchy visualization
+
   // Dashboard specific fields
   isFavorite Boolean   @default(false)
   category   String?
@@ -33,6 +38,7 @@ model ScrapedPage {
   @@index([url])
   @@index([userId])
   @@index([createdAt])
+  @@index([crawlJobId])
 }
 
 model User {
@@ -130,6 +136,8 @@ model CrawlJob {
   failedUrls   String?   // Store as JSON string because SQLite doesn't support String[]
   processedUrls Int      @default(0) // Count of successfully processed URLs
   foundUrls    Int      @default(0) // Count of total URLs found within scope
+
+  scrapedPages ScrapedPage[] // Relation to all pages crawled in this job
 
   @@index([status])
   @@index([userId])

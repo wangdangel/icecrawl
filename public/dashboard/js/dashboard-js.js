@@ -846,14 +846,114 @@ async function handleJobDelete(e) {
 }
 
 // Placeholder handlers for crawl job actions (New)
-function handleCrawlJobView(e) {
+async function handleCrawlJobView(e) {
     const id = e.currentTarget.dataset.id;
-    // TODO: Implement view/details logic for crawl jobs
-    // Maybe open a modal showing job details, options, failed URLs, etc.
-    // Or link to a dedicated results page?
-    alert(`Viewing details for Crawl Job ID: ${id}. (Details view not fully implemented)`);
-    // Example: Fetch details and show in a modal
-    // fetchCrawlJobDetails(id).then(details => showCrawlDetailsModal(details));
+    window.location.href = `/dashboard/crawl-details.html?id=${id}`;
+}
+
+// Fetch crawl job details from API
+async function fetchCrawlJobDetails(jobId) {
+    const response = await fetch(`/api/crawl/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!response.ok) throw new Error('Failed to fetch crawl job details');
+    const result = await response.json();
+    if (result.status !== 'success') throw new Error(result.message || 'Failed to fetch crawl job details');
+    return result.data;
+}
+
+function showCrawlDetailsModal(details) {
+    let content = `
+    <h2>Crawl Job Details</h2>
+    <p><strong>Job ID:</strong> ${details.jobId}</p>
+    <p><strong>Status:</strong> ${details.jobStatus}</p>
+    <p><strong>Start URL:</strong> <a href="${details.startUrl}" target="_blank">${details.startUrl}</a></p>
+    <p><strong>Processed URLs:</strong> ${details.processedUrls}</p>
+    <p><strong>Found URLs:</strong> ${details.foundUrls}</p>
+    <p><strong>Total Pages:</strong> ${details.totalPages || 0}</p>
+    <p><strong>Start Time:</strong> ${details.startTime || 'N/A'}</p>
+    <p><strong>End Time:</strong> ${details.endTime || 'N/A'}</p>
+    <p><strong>Failed URLs:</strong> ${details.failedUrls && details.failedUrls.length ? details.failedUrls.join(', ') : 'None'}</p>
+    `;
+
+    if (details.pages && details.pages.length > 0) {
+        content += `<h3>Scraped Pages (${details.pages.length})</h3>`;
+        content += `<ul style="max-height:300px;overflow:auto;">`;
+        details.pages.forEach(page => {
+            content += `<li style="margin-bottom:10px;">
+                <strong><a href="${page.url}" target="_blank">${page.title || page.url}</a></strong><br/>
+                <em>Parent:</em> ${page.parentUrl || 'None'}<br/>
+                <pre style="max-height:150px;overflow:auto;background:#f9f9f9;padding:5px;">${escapeHtml(page.content)}</pre>
+            </li>`;
+        });
+        content += `</ul>`;
+    } else {
+        content += `<p>No individual pages saved for this crawl.</p>`;
+    }
+
+    // Basic crawl hierarchy visualization
+    if (details.pages && details.pages.length > 0) {
+        const tree = buildCrawlTree(details.pages, details.startUrl);
+        content += `<h3>Crawl Hierarchy</h3>`;
+        content += renderCrawlTree(tree);
+    }
+
+    // Also show raw markdown if available
+    if (details.mcpResult && details.mcpResult.markdownData) {
+        content += `<h3>Scraped Content (Markdown)</h3><pre style="max-height:400px;overflow:auto;background:#f9f9f9;padding:10px;">${escapeHtml(details.mcpResult.markdownData)}</pre>`;
+    } else {
+        content += `<p>No crawl content available.</p>`;
+    }
+
+    const modalWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes');
+    modalWindow.document.write(`<html><head><title>Crawl Job Details</title></head><body style="font-family:sans-serif;">${content}</body></html>`);
+    modalWindow.document.close();
+}
+
+// Build a tree from pages with parentUrl
+function buildCrawlTree(pages, rootUrl) {
+    const map = {};
+    pages.forEach(p => {
+        map[p.url] = { ...p, children: [] };
+    });
+    const treeRoot = { url: rootUrl, children: [] };
+    Object.values(map).forEach(node => {
+        if (node.parentUrl && map[node.parentUrl]) {
+            map[node.parentUrl].children.push(node);
+        } else if (node.url === rootUrl) {
+            treeRoot.children.push(node);
+        } else {
+            treeRoot.children.push(node); // Orphan or root
+        }
+    });
+    return treeRoot;
+}
+
+// Render crawl tree as nested list
+function renderCrawlTree(node) {
+    let html = `<ul>`;
+    if (node.url) {
+        html += `<li><a href="${node.url}" target="_blank">${node.title || node.url}</a>`;
+    }
+    if (node.children && node.children.length > 0) {
+        node.children.forEach(child => {
+            html += renderCrawlTree(child);
+        });
+    }
+    if (node.url) {
+        html += `</li>`;
+    }
+    html += `</ul>`;
+    return html;
+}
+
+// Escape HTML for safe display
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>');
 }
 
 async function handleCrawlJobDelete(e) {
@@ -861,7 +961,7 @@ async function handleCrawlJobDelete(e) {
     if (confirm('Are you sure you want to delete this crawl job and its associated data?')) {
         try {
             // TODO: Update API endpoint if needed
-            const response = await fetch(`/api/dashboard/crawl-job/${id}`, { // Assuming endpoint exists
+            const response = await fetch(`/api/crawl/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${state.token}` },
             });
