@@ -1,53 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Web Scraper Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+
+    .card {
+      transition: all 0.2s ease;
+      border-radius: 0.5rem;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .stats-card {
+      border-left: 4px solid transparent;
+    }
+
+    .stats-card-primary {
+      border-left-color: #4f46e5;
+    }
+
+    .stats-card-success {
+      border-left-color: #10b981;
+    }
+
+    .stats-card-warning {
+      border-left-color: #f59e0b;
+    }
+
+    .stats-card-danger {
+      border-left-color: #ef4444;
+    }
+
+    .nav-link {
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link-active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-link-active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 2px;
+      width: 100%;
+      background-color: white;
+    }
+
+    .nav-link:hover:not(.nav-link-active) {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .table-row {
+      transition: background-color 0.2s ease;
+    }
+
+    .table-row:hover {
+      background-color: #f9fafb;
+    }
+
+    .action-button {
+      transition: all 0.2s ease;
+      opacity: 0.8;
+    }
+
+    .action-button:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    /* Pulse animation for loading states */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c5c5c5;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a3a3a3;
+    }
+
+    /* Page transition */
+    .page-transition {
+      transition: opacity 0.3s ease;
+    }
+
+    .page-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Enhanced button styles */
+    .btn {
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+  </style>
 </head>
-<body class="bg-gray-100 font-sans">
+
+<body class="bg-gray-100 font-sans text-gray-800">
   <div id="app" class="min-h-screen flex flex-col">
     <!-- Top Navigation -->
-    <nav class="bg-indigo-600 text-white shadow-md">
+    <nav class="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white shadow-lg">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex">
             <div class="flex-shrink-0 flex items-center">
-              <span class="text-xl font-bold">Web Scraper Dashboard</span>
+              <i class="fas fa-spider text-2xl mr-2 text-white"></i>
+              <span class="text-xl font-bold tracking-tight">Web Scraper Dashboard</span>
             </div>
-            <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-dashboard">Dashboard</a>
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-scrapes">My Scrapes</a>
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-jobs">Scrape Jobs</a>
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-crawl-jobs">Crawl Jobs</a> <!-- Added Crawl Jobs Nav -->
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-transformers">Transformers</a>
+            <div class="hidden md:ml-8 md:flex md:items-center md:space-x-2">
+              <a href="#" class="px-4 py-2 rounded-md text-sm font-medium nav-link nav-link-active"
+                id="nav-dashboard">Dashboard</a>
+              <a href="#" class="px-4 py-2 rounded-md text-sm font-medium nav-link" id="nav-scrapes">My Scrapes</a>
+              <a href="#" class="px-4 py-2 rounded-md text-sm font-medium nav-link" id="nav-jobs">Scrape Jobs</a>
+              <a href="#" class="px-4 py-2 rounded-md text-sm font-medium nav-link" id="nav-crawl-jobs">Crawl Jobs</a>
+              <a href="#" class="px-4 py-2 rounded-md text-sm font-medium nav-link"
+                id="nav-transformers">Transformers</a>
             </div>
           </div>
           <div class="flex items-center">
             <div class="ml-3 relative">
               <div>
-                <button type="button" class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-800 focus:ring-white" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                <button type="button"
+                  class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-800 focus:ring-white"
+                  id="user-menu-button" aria-expanded="false" aria-haspopup="true">
                   <span class="sr-only">Open user menu</span>
-                  <div class="h-8 w-8 rounded-full bg-indigo-700 flex items-center justify-center">
-                    <span id="user-initials">JS</span>
+                  <div
+                    class="h-9 w-9 rounded-full bg-indigo-800 border-2 border-white flex items-center justify-center shadow-md">
+                    <span id="user-initials" class="font-semibold">JS</span>
                   </div>
                 </button>
               </div>
-              <div class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1" id="user-menu">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-profile">Your Profile</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-settings">Settings</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="user-menu-logout">Sign out</a>
+              <div
+                class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1" id="user-menu">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"
+                  tabindex="-1" id="user-menu-profile">
+                  <i class="fas fa-user mr-2 text-indigo-500"></i> Your Profile
+                </a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"
+                  tabindex="-1" id="user-menu-settings">
+                  <i class="fas fa-cog mr-2 text-indigo-500"></i> Settings
+                </a>
+                <div class="border-t border-gray-100 my-1"></div>
+                <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem" tabindex="-1"
+                  id="user-menu-logout">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Sign out
+                </a>
               </div>
             </div>
             <div class="ml-4 flex space-x-2">
-              <button type="button" class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700" id="new-crawl-button">
+              <button type="button"
+                class="btn flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                id="new-crawl-button">
                 <i class="fas fa-spider mr-2"></i> New Crawl
               </button>
-              <button type="button" class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-800 hover:bg-indigo-700" id="new-scrape-button">
+              <button type="button"
+                class="btn flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                id="new-scrape-button">
                 <i class="fas fa-plus mr-2"></i> New Scrape
               </button>
             </div>
@@ -57,14 +219,14 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow">
+    <main class="flex-grow page-transition">
       <!-- Dashboard -->
-      <div class="py-6" id="page-dashboard">
+      <div class="py-8" id="page-dashboard">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <h1 class="text-2xl font-bold text-gray-900 mb-6">Dashboard Overview</h1>
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <!-- Stat card - Total Scrapes -->
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="bg-white overflow-hidden shadow-md rounded-lg card stats-card stats-card-primary">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
@@ -74,7 +236,7 @@
                     <dl>
                       <dt class="text-sm font-medium text-gray-500 truncate">Total Scrapes</dt>
                       <dd>
-                        <div class="text-lg font-medium text-gray-900" id="stat-total-scrapes">0</div>
+                        <div class="text-2xl font-semibold text-gray-900" id="stat-total-scrapes">0</div>
                       </dd>
                     </dl>
                   </div>
@@ -83,7 +245,7 @@
             </div>
 
             <!-- Stat card - Favorites -->
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="bg-white overflow-hidden shadow-md rounded-lg card stats-card stats-card-success">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 bg-yellow-100 rounded-md p-3">
@@ -93,7 +255,7 @@
                     <dl>
                       <dt class="text-sm font-medium text-gray-500 truncate">Favorites</dt>
                       <dd>
-                        <div class="text-lg font-medium text-gray-900" id="stat-favorites">0</div>
+                        <div class="text-2xl font-semibold text-gray-900" id="stat-favorites">0</div>
                       </dd>
                     </dl>
                   </div>
@@ -102,7 +264,7 @@
             </div>
 
             <!-- Stat card - Pending Jobs -->
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="bg-white overflow-hidden shadow-md rounded-lg card stats-card stats-card-warning">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
@@ -112,7 +274,7 @@
                     <dl>
                       <dt class="text-sm font-medium text-gray-500 truncate">Pending Jobs</dt>
                       <dd>
-                        <div class="text-lg font-medium text-gray-900" id="stat-pending-jobs">0</div>
+                        <div class="text-2xl font-semibold text-gray-900" id="stat-pending-jobs">0</div>
                       </dd>
                     </dl>
                   </div>
@@ -121,7 +283,7 @@
             </div>
 
             <!-- Stat card - Failed Jobs -->
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="bg-white overflow-hidden shadow-md rounded-lg card stats-card stats-card-danger">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
@@ -131,7 +293,7 @@
                     <dl>
                       <dt class="text-sm font-medium text-gray-500 truncate">Failed Jobs</dt>
                       <dd>
-                        <div class="text-lg font-medium text-gray-900" id="stat-failed-jobs">0</div>
+                        <div class="text-2xl font-semibold text-gray-900" id="stat-failed-jobs">0</div>
                       </dd>
                     </dl>
                   </div>
@@ -142,10 +304,11 @@
 
           <!-- Scraping Activity Chart -->
           <div class="mt-8">
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-4 py-5 sm:p-6">
-                <h2 class="text-lg leading-6 font-medium text-gray-900">Scraping Activity</h2>
-                <div class="mt-4">
+            <div class="bg-white shadow-md rounded-lg card p-4">
+              <div class="px-4 py-3">
+                <h2 class="text-lg font-semibold text-gray-900 mb-1">Scraping Activity</h2>
+                <p class="text-sm text-gray-500 mb-4">Overview of your scraping operations over time</p>
+                <div class="mt-4 bg-gray-50 rounded-lg p-4">
                   <canvas id="scraping-activity-chart" height="300"></canvas>
                 </div>
               </div>
@@ -155,25 +318,34 @@
           <!-- Recent Scrapes and Top Domains -->
           <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- Recent Scrapes -->
-            <div class="bg-white shadow rounded-lg">
+            <div class="bg-white shadow-md rounded-lg card">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between">
-                  <h2 class="text-lg leading-6 font-medium text-gray-900">Recent Scrapes</h2>
-                  <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500" id="view-all-scrapes">View all</a>
+                  <h2 class="text-lg font-semibold text-gray-900">Recent Scrapes</h2>
+                  <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center"
+                    id="view-all-scrapes">
+                    View all
+                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                  </a>
                 </div>
                 <div class="mt-4 flow-root">
                   <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                      <table class="min-w-full divide-y divide-gray-300">
+                      <table class="min-w-full divide-y divide-gray-200">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Title</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sm:pl-0">
+                              Title</th>
+                            <th scope="col"
+                              class="px-3 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Date</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="recent-scrapes-table">
-                          <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
+                          <tr class="table-row loading">
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                           </tr>
                         </tbody>
@@ -185,6 +357,41 @@
             </div>
 
             <!-- Top Domains -->
+            <div class="bg-white shadow-md rounded-lg card">
+              <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-semibold text-gray-900">Top Domains</h2>
+                <div class="mt-4 flow-root">
+                  <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                          <tr>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sm:pl-0">
+                              Domain</th>
+                            <th scope="col"
+                              class="px-3 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Count</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="top-domains-table">
+                          <tr class="table-row loading">
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+            <!-- Top Domains -->
             <div class="bg-white shadow rounded-lg">
               <div class="px-4 py-5 sm:p-6">
                 <h2 class="text-lg leading-6 font-medium text-gray-900">Top Domains</h2>
@@ -194,13 +401,15 @@
                       <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Domain</th>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Domain</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Count</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="top-domains-table">
                           <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                           </tr>
                         </tbody>
@@ -228,12 +437,15 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <i class="fas fa-search text-gray-400"></i>
                     </div>
-                    <input type="text" name="search" id="search" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md" placeholder="Search by title or URL">
+                    <input type="text" name="search" id="search"
+                      class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Search by title or URL">
                   </div>
                 </div>
                 <div>
                   <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                  <select id="category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                  <select id="category" name="category"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="">All Categories</option>
                     <option value="news">News</option>
                     <option value="tech">Technology</option>
@@ -243,7 +455,8 @@
                 </div>
                 <div>
                   <label for="tag" class="block text-sm font-medium text-gray-700">Tag</label>
-                  <select id="tag" name="tag" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                  <select id="tag" name="tag"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="">All Tags</option>
                     <option value="important">Important</option>
                     <option value="research">Research</option>
@@ -262,16 +475,20 @@
                       <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Title</th>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Title</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">URL</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category
+                            </th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="scrapes-table">
                           <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
@@ -284,15 +501,18 @@
                 </div>
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-sm text-gray-700">
-                    Showing <span id="scrapes-pagination-showing">0</span> of <span id="scrapes-pagination-total">0</span> results
+                    Showing <span id="scrapes-pagination-showing">0</span> of <span
+                      id="scrapes-pagination-total">0</span> results
                   </div>
                   <div>
                     <nav class="flex items-center" aria-label="Pagination">
-                      <button id="scrapes-pagination-prev" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="scrapes-pagination-prev"
+                        class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Previous
                       </button>
                       <span class="mx-2 text-gray-700" id="scrapes-pagination-current">1</span>
-                      <button id="scrapes-pagination-next" class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="scrapes-pagination-next"
+                        class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Next
                       </button>
                     </nav>
@@ -314,7 +534,8 @@
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <label for="status-filter" class="block text-sm font-medium text-gray-700">Status</label>
-                  <select id="status-filter" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                  <select id="status-filter" name="status"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="processing">Processing</option>
@@ -323,7 +544,9 @@
                   </select>
                 </div>
                 <div class="sm:col-span-2 flex items-end">
-                  <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="schedule-job-button">
+                  <button type="button"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    id="schedule-job-button">
                     <i class="fas fa-calendar-plus mr-2"></i> Schedule Job
                   </button>
                 </div>
@@ -339,16 +562,22 @@
                       <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">URL</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Completed</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">URL</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Completed
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="jobs-table">
                           <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
@@ -361,15 +590,18 @@
                 </div>
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-sm text-gray-700">
-                    Showing <span id="jobs-pagination-showing">0</span> of <span id="jobs-pagination-total">0</span> results
+                    Showing <span id="jobs-pagination-showing">0</span> of <span id="jobs-pagination-total">0</span>
+                    results
                   </div>
                   <div>
                     <nav class="flex items-center" aria-label="Pagination">
-                      <button id="jobs-pagination-prev" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="jobs-pagination-prev"
+                        class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Previous
                       </button>
                       <span class="mx-2 text-gray-700" id="jobs-pagination-current">1</span>
-                      <button id="jobs-pagination-next" class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="jobs-pagination-next"
+                        class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Next
                       </button>
                     </nav>
@@ -391,7 +623,8 @@
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <label for="crawl-status-filter" class="block text-sm font-medium text-gray-700">Status</label>
-                  <select id="crawl-status-filter" name="crawl-status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                  <select id="crawl-status-filter" name="crawl-status"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="processing">Processing</option>
@@ -413,17 +646,24 @@
                       <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Start URL</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Finished</th>
+                            <th scope="col"
+                              class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Start URL
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created
+                            </th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Finished
+                            </th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pages</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="crawl-jobs-table">
                           <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                              Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
@@ -437,15 +677,18 @@
                 </div>
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-sm text-gray-700">
-                    Showing <span id="crawl-jobs-pagination-showing">0</span> of <span id="crawl-jobs-pagination-total">0</span> results
+                    Showing <span id="crawl-jobs-pagination-showing">0</span> of <span
+                      id="crawl-jobs-pagination-total">0</span> results
                   </div>
                   <div>
                     <nav class="flex items-center" aria-label="Pagination">
-                      <button id="crawl-jobs-pagination-prev" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="crawl-jobs-pagination-prev"
+                        class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Previous
                       </button>
                       <span class="mx-2 text-gray-700" id="crawl-jobs-pagination-current">1</span>
-                      <button id="crawl-jobs-pagination-next" class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button id="crawl-jobs-pagination-next"
+                        class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         Next
                       </button>
                     </nav>
@@ -478,7 +721,8 @@
                       </div>
                     </div>
                     <div class="mt-4">
-                      <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <button type="button"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Apply
                       </button>
                     </div>
@@ -494,7 +738,8 @@
                       </div>
                     </div>
                     <div class="mt-4">
-                      <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <button type="button"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Apply
                       </button>
                     </div>
@@ -510,7 +755,8 @@
                       </div>
                     </div>
                     <div class="mt-4">
-                      <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <button type="button"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Apply
                       </button>
                     </div>
@@ -531,15 +777,18 @@
                         </div>
                       </div>
                       <div class="mt-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
                           textCleanup
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                           keywordExtractor
                         </span>
                       </div>
                       <div class="mt-4">
-                        <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button type="button"
+                          class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                           Apply Pipeline
                         </button>
                       </div>
@@ -555,24 +804,30 @@
                         </div>
                       </div>
                       <div class="mt-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
                           textCleanup
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
                           keywordExtractor
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
                           languageDetector
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-1">
                           sentimentAnalyzer
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                           textSummarizer
                         </span>
                       </div>
                       <div class="mt-4">
-                        <button type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button type="button"
+                          class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                           Apply Pipeline
                         </button>
                       </div>
@@ -613,7 +868,8 @@
           <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div
+          class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div>
               <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
@@ -625,13 +881,16 @@
                     <div>
                       <label for="scrape-url" class="block text-sm font-medium text-gray-700">URL</label>
                       <div class="mt-1">
-                        <input type="url" name="url" id="scrape-url" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="https://example.com" required>
+                        <input type="url" name="url" id="scrape-url"
+                          class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                          placeholder="https://example.com" required>
                       </div>
                     </div>
                     <div class="mt-4">
                       <label for="scrape-category" class="block text-sm font-medium text-gray-700">Category</label>
                       <div class="mt-1">
-                        <select id="scrape-category" name="category" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <select id="scrape-category" name="category"
+                          class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
                           <option value="">None</option>
                           <option value="news">News</option>
                           <option value="tech">Technology</option>
@@ -643,7 +902,8 @@
                     <div class="mt-4">
                       <label for="scrape-notes" class="block text-sm font-medium text-gray-700">Notes</label>
                       <div class="mt-1">
-                        <textarea id="scrape-notes" name="notes" rows="3" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+                        <textarea id="scrape-notes" name="notes" rows="3"
+                          class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
                       </div>
                     </div>
                     <div class="mt-4">
@@ -651,7 +911,8 @@
                       <div class="mt-2">
                         <div class="flex items-start">
                           <div class="flex items-center h-5">
-                            <input id="scrape-browser" name="useBrowser" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            <input id="scrape-browser" name="useBrowser" type="checkbox"
+                              class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
                           </div>
                           <div class="ml-3 text-sm">
                             <label for="scrape-browser" class="font-medium text-gray-700">Use browser</label>
@@ -666,10 +927,12 @@
             </div>
           </div>
           <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button type="button" id="scrape-submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+            <button type="button" id="scrape-submit"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
               Scrape Now
             </button>
-            <button type="button" id="scrape-cancel" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+            <button type="button" id="scrape-cancel"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
               Cancel
             </button>
           </div>
@@ -684,7 +947,8 @@
           <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div
+          class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div>
               <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
@@ -696,7 +960,9 @@
                     <div>
                       <label for="crawl-start-url" class="block text-sm font-medium text-gray-700">Start URL</label>
                       <div class="mt-1">
-                        <input type="url" name="startUrl" id="crawl-start-url" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="https://example.com" required>
+                        <input type="url" name="startUrl" id="crawl-start-url"
+                          class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                          placeholder="https://example.com" required>
                       </div>
                     </div>
 
@@ -704,14 +970,18 @@
                       <div>
                         <label for="crawl-max-depth" class="block text-sm font-medium text-gray-700">Max Depth</label>
                         <div class="mt-1">
-                           <input type="number" name="maxDepth" id="crawl-max-depth" min="0" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Unlimited">
-                           <p class="mt-1 text-xs text-gray-500">0 = Start page only. Leave blank for unlimited.</p>
+                          <input type="number" name="maxDepth" id="crawl-max-depth" min="0"
+                            class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            placeholder="Unlimited">
+                          <p class="mt-1 text-xs text-gray-500">0 = Start page only. Leave blank for unlimited.</p>
                         </div>
                       </div>
-                       <div>
-                        <label for="crawl-domain-scope" class="block text-sm font-medium text-gray-700">Domain Scope</label>
+                      <div>
+                        <label for="crawl-domain-scope" class="block text-sm font-medium text-gray-700">Domain
+                          Scope</label>
                         <div class="mt-1">
-                          <select id="crawl-domain-scope" name="domainScope" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                          <select id="crawl-domain-scope" name="domainScope"
+                            class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
                             <option value="strict" selected>Strict Hostname</option>
                             <option value="parent">Parent Domain</option>
                             <option value="subdomains">All Subdomains</option>
@@ -727,7 +997,8 @@
                       <div class="mt-2">
                         <div class="flex items-start">
                           <div class="flex items-center h-5">
-                            <input id="crawl-browser" name="useBrowser" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            <input id="crawl-browser" name="useBrowser" type="checkbox"
+                              class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
                           </div>
                           <div class="ml-3 text-sm">
                             <label for="crawl-browser" class="font-medium text-gray-700">Use browser</label>
@@ -743,10 +1014,12 @@
             </div>
           </div>
           <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button type="button" id="crawl-submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+            <button type="button" id="crawl-submit"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
               Start Crawl
             </button>
-            <button type="button" id="crawl-cancel" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+            <button type="button" id="crawl-cancel"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
               Cancel
             </button>
           </div>
@@ -756,6 +1029,8 @@
 
   </div>
 
-  <script src="js/dashboard-js.js"></script>
+  <!-- Load the application using ES modules -->
+  <script type="module" src="js/app.js"></script>
 </body>
+
 </html>

@@ -20,10 +20,30 @@ This document tracks the tasks required to implement and maintain the Web Scrape
   - Updated documentation (`README.md`, `docs/cli-usage.md`)
   - Improved global usability (Added: 2025-04-07)
 
-- [x] Fix TypeScript errors in dashboardService.ts (Added: 2025-04-07)
-- [ ] Publish patched version to npm, ensuring <code>scripts/global-postinstall.js</code> is included and runs on install (Added: 2025-04-07)
-- [x] Fix `npm run dev` crash (Added: 2025-04-06)
-- [x] Investigate unexpected port usage (e.g., using ports other than configured `PORT`) (Added: 2025-04-07) - *Finding: Other ports are likely ephemeral ports used internally by Puppeteer (BrowserService) for Chrome DevTools Protocol communication, which is expected behavior.*
+- [ ] **Refactor Dashboard JavaScript (Added: 2025-04-07)**
+    - **Goal:** Break up the large `public/dashboard/js/dashboard-js.js` file into smaller, well-organized ES6 modules to improve maintainability, readability, and scalability.
+    - **Approach:**
+        - Create a `public/dashboard/js/modules/` directory.
+        - Extract code into focused modules:
+            - `state.js` (global state)
+            - `domCache.js` (DOM references)
+            - `auth.js` (authentication)
+            - `api.js` (API calls)
+            - `render.js` (rendering functions)
+            - `events.js` (event listeners)
+            - `modals.js` (modal logic)
+            - `forms.js` (form submissions)
+            - `actions.js` (action handlers)
+            - `utils.js` (helper functions)
+            - `main.js` (entry point)
+        - **Incrementally extract one module at a time.**
+        - **After each extraction:**
+            - Update imports and references.
+            - Test the dashboard UI thoroughly.
+            - Fix any issues before proceeding.
+        - Finalize by updating the dashboard to load the new modular code.
+
+*
 
 ### Maintenance (Added: 2025-04-07)
 - [x] Ensure Global Installation (`npm install -g icecrawl`) Works Smoothly

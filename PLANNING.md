@@ -7,7 +7,7 @@ This document outlines the planning for the Web Scraper Dual-Interface project.
 Icecrawl is a versatile web scraping application designed to function via three distinct interfaces:
 
 1.  **HTTP API Server**
-    -   Runs on port 6969 (default, configurable via PORT env var).
+    -   Runs on port 6971 (default, configurable via PORT env var).
     -   Provides scraping and job management via RESTful endpoints.
     -   Includes a web dashboard for UI interaction.
     -   Intended for web-based integration and user interaction.
