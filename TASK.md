@@ -8,6 +8,10 @@ This document tracks the tasks required to implement and maintain the Web Scrape
     - Review backend transformer modules (`src/transformers/`)
     - Review dashboard UI for content transformation
     - Fix bugs, improve modularity, and ensure maintainability
+    - **Fix 401 Unauthorized error during transformation:**
+        - Ensure dashboard user is logged in before making transformation requests
+        - Handle missing/expired token by redirecting to login or prompting re-authentication
+        - Consider supporting API key authentication as fallback for transformation endpoints
 
 - [x] Fix crawler extracting 0 links during crawl jobs (Added: 2025-04-07)
     - Logs show `"Extracted links count": 0` even for pages known to have links.

@@ -77,3 +77,24 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   
   next();
 }
+
+/**
+ * Conditional auth middleware for /api/transform
+ * - Allows unauthenticated access from localhost or internal requests
+ * - Requires auth otherwise
+ */
+export function conditionalAuthForTransform(req: Request, res: Response, next: NextFunction): void {
+  const internalHeader = req.headers['x-internal-request'];
+  const remoteAddress = req.ip || req.connection.remoteAddress;
+
+  const isLocalhost = remoteAddress === '::1' || remoteAddress === '127.0.0.1' || remoteAddress === '::ffff:127.0.0.1';
+  const isInternal = internalHeader === 'true' || internalHeader === '1';
+
+  if (isLocalhost || isInternal) {
+    // Skip auth for local/internal requests
+    return next();
+  }
+
+  // Otherwise, require normal auth
+  authenticate(req, res, next);
+}

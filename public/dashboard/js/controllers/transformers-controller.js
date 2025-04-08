@@ -4,6 +4,7 @@
  */
 
 import ApiService from '../services/api-service.js';
+import AuthService from '../services/auth-service.js';
 
 class TransformerController {
   constructor() {
@@ -208,9 +209,19 @@ class TransformerController {
     try {
       resultEl.textContent = 'Applying transformer...';
 
+      const token = AuthService.getToken();
+      if (!token) {
+        alert('You must be logged in to perform transformations.');
+        window.location.href = '/login';
+        return;
+      }
+
       const response = await fetch(`/api/transform/transformers/${encodeURIComponent(transformer)}/apply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ content }),
       });
 
