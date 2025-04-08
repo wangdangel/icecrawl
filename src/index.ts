@@ -41,16 +41,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'webscraper-session-secret-
 // Middleware
 app.use(cors());
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'cdnjs.cloudflare.com', "'unsafe-inline'"], // Allow inline scripts for login page
-      styleSrc: ["'self'", 'cdnjs.cloudflare.com', "'unsafe-inline'"], // Allow styles from CDNs
-      fontSrc: ["'self'", 'cdnjs.cloudflare.com'], // Allow fonts from CDNs
-      imgSrc: ["'self'", 'data:'], // Allow inline data images
-      connectSrc: ["'self'"],
-    },
-  },
+  contentSecurityPolicy: false,
 }));
 app.use(morgan('dev'));
 app.use(requestLogger);

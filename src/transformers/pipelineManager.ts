@@ -87,7 +87,7 @@ export class PipelineManager {
       }
       
       logger.debug(`Running transformer: ${transformer.name}`);
-      result = await transformer.transform(result);
+      result = await transformer.transform(result, step.config);
     }
     
     return result;

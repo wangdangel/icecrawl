@@ -301,6 +301,8 @@ router.post('/scrape-job/:id/retry', authenticate, DashboardController.retryScra
  */
 router.delete('/scrape-job/:id', authenticate, DashboardController.deleteScrapeJob); // Use controller method
 
+router.delete('/scrape/:id', authenticate, DashboardController.deleteScrape); // New: delete a scraped page
+
 /**
  * @swagger
  * /api/dashboard/crawl-jobs:

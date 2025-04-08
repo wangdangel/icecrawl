@@ -255,18 +255,18 @@ const ApiService = {
      * @returns {Promise<Array>} Transformers list
      */
     async getTransformers() {
-      const result = await ApiService.request('/api/dashboard/transformers');
-      return result.data.transformers;
+      const result = await ApiService.request('/api/transform/transformers');
+      return result.data;
     },
     
     /**
      * Apply a transformer
-     * @param {string} transformerId - Transformer ID
+     * @param {string} transformerName - Transformer name
      * @param {Object} data - Data to transform
      * @returns {Promise<Object>} Transformation result
      */
-    async applyTransformer(transformerId, data) {
-      const result = await ApiService.request(`/api/dashboard/transformer/${transformerId}/apply`, {
+    async applyTransformer(transformerName, data) {
+      const result = await ApiService.request(`/api/transform/transformers/${encodeURIComponent(transformerName)}/apply`, {
         method: 'POST',
         body: JSON.stringify(data)
       });

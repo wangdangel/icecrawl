@@ -189,14 +189,42 @@ class TransformerController {
    * Handle transformer apply button click
    * @param {Event} e - Click event
    */
-  handleTransformerApply(e) {
+  async handleTransformerApply(e) {
     const transformer = e.currentTarget.dataset.transformer;
-    alert(`Applying transformer: ${transformer}. This feature is not fully implemented yet.`);
-    
-    // TODO: Implement transformer application
-    // 1. Show a modal to select content to transform
-    // 2. Call the API to apply the transformer
-    // 3. Show the results
+    const inputEl = document.getElementById('transform-input');
+    const resultEl = document.getElementById('transform-result');
+
+    if (!inputEl || !resultEl) {
+      alert('Input or result element not found.');
+      return;
+    }
+
+    const content = inputEl.value.trim();
+    if (!content) {
+      alert('Please enter some content to transform.');
+      return;
+    }
+
+    try {
+      resultEl.textContent = 'Applying transformer...';
+
+      const response = await fetch(`/api/transform/transformers/${encodeURIComponent(transformer)}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        resultEl.textContent = `Error: ${response.status} ${response.statusText}\n${errorText}`;
+        return;
+      }
+
+      const data = await response.json();
+      resultEl.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+      resultEl.textContent = `Error applying transformer: ${error.message || error}`;
+    }
   }
 }
 

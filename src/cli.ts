@@ -121,5 +121,66 @@ program
     await startMcpServer();
   });
 
+// Subcommand: transform
+program
+  .command('transform')
+  .description('Apply a transformer or pipeline to input content')
+  .option('-p, --pipeline <name>', 'Pipeline name to run')
+  .option('-t, --transformer <name>', 'Transformer name to apply')
+  .option('-f, --file <path>', 'Input file path (defaults to stdin if omitted)')
+  .option('-c, --config <json>', 'Transformer config as JSON string')
+  .option('--step-configs <json>', 'Pipeline step configs as JSON array string')
+  .action(async (opts) => {
+    const fetch = (await import('node-fetch')).default;
+    const apiUrl = process.env.API_URL || 'http://localhost:6971/api/transform';
+
+    let content = '';
+    if (opts.file) {
+      content = fs.readFileSync(opts.file, 'utf-8');
+    } else {
+      content = await getInputFromStdin();
+    }
+
+    if (!opts.pipeline && !opts.transformer) {
+      console.error('Error: Must specify either --pipeline or --transformer');
+      process.exit(1);
+    }
+
+    try {
+      let url = '';
+      let body: any = { content };
+
+      if (opts.transformer) {
+        url = `${apiUrl}/transformers/${opts.transformer}/apply`;
+        if (opts.config) {
+          body.config = JSON.parse(opts.config);
+        }
+      } else if (opts.pipeline) {
+        url = `${apiUrl}/pipelines/${opts.pipeline}/run`;
+        if (opts.stepConfigs) {
+          body.stepConfigs = JSON.parse(opts.stepConfigs);
+        }
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error: ${response.status} ${response.statusText}\n${errorText}`);
+        process.exit(1);
+      }
+
+      const result = await response.json();
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error('Error applying transformation:', error);
+      process.exit(1);
+    }
+  });
+
 // Parse args and execute
 program.parse(process.argv);

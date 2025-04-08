@@ -49,9 +49,27 @@ const App = {
   }
 };
 
-// Initialize when DOM is loaded
+/**
+ * Initialize when DOM is loaded
+ */
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
+
+  const profileLink = document.getElementById('user-menu-profile');
+  if (profileLink) {
+    profileLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'settings.html';
+    });
+  }
+
+  const settingsLink = document.getElementById('user-menu-settings');
+  if (settingsLink) {
+    settingsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'settings.html';
+    });
+  }
 });
 
 export default App;

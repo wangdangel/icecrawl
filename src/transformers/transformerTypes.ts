@@ -6,7 +6,7 @@ import { ScrapedData } from '../core/scraper';
 export interface Transformer<T = any, U = any> {
   name: string;
   description: string;
-  transform: (input: T) => Promise<U>;
+  transform: (input: T, config?: Record<string, any>) => Promise<U>;
 }
 
 /**

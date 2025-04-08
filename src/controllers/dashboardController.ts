@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { DashboardService } from '../services/dashboardService';
 import logger from '../utils/logger';
+import prisma from '../db/prismaClient';
 
 // Validation schema for pagination
 const paginationSchema = z.object({
@@ -445,4 +446,42 @@ export class DashboardController {
   }
 
   // TODO: Add methods for managing tags, categories, etc. if needed
+
+  static async deleteScrape(req: Request, res: Response): Promise<Response> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+
+      if (!id) {
+        return res.status(400).json({ status: 'error', message: 'Missing scrape ID' });
+      }
+
+      // Optional: check if the scrape belongs to the user
+      const existing = await prisma.scrapedPage.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        return res.status(404).json({ status: 'error', message: 'Scrape not found' });
+      }
+
+      if (existing.userId && existing.userId !== userId) {
+        return res.status(403).json({ status: 'error', message: 'Not authorized to delete this scrape' });
+      }
+
+      await prisma.scrapedPage.delete({
+        where: { id },
+      });
+
+      return res.json({ status: 'success', message: 'Scrape deleted successfully' });
+    } catch (error) {
+      logger.error({
+        message: 'Error deleting scrape',
+        userId: req.user?.id,
+        scrapeId: req.params.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return res.status(500).json({ status: 'error', message: 'Failed to delete scrape' });
+    }
+  }
 }

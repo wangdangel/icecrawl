@@ -32,15 +32,17 @@ export const textCleanupTransformer: ScrapedDataTransformer = {
 export const textSummarizerTransformer: ScrapedDataTransformer = {
   name: 'textSummarizer',
   description: 'Creates a summary of the text content',
-  transform: async (data: ScrapedData): Promise<ScrapedData & { summary: string }> => {
+  transform: async (data: ScrapedData, config?: Record<string, any>): Promise<ScrapedData & { summary: string }> => {
     logger.debug('Running text summarizer transformer');
+    
+    const maxLength = typeof config?.maxLength === 'number' ? config.maxLength : 200;
     
     // Make a copy of the data
     const result = { ...data };
     
-    // Create a simple summary (first 200 characters)
+    // Create a simple summary (first maxLength characters)
     // In a real implementation, this would use a more sophisticated algorithm
-    const summary = data.content.slice(0, 200).trim() + '...';
+    const summary = data.content.slice(0, maxLength).trim() + '...';
     
     return {
       ...result,
@@ -55,8 +57,10 @@ export const textSummarizerTransformer: ScrapedDataTransformer = {
 export const keywordExtractorTransformer: ScrapedDataTransformer<ScrapedData & { keywords: string[] }> = {
   name: 'keywordExtractor',
   description: 'Extracts keywords from the text content',
-  transform: async (data: ScrapedData): Promise<ScrapedData & { keywords: string[] }> => {
+  transform: async (data: ScrapedData, config?: Record<string, any>): Promise<ScrapedData & { keywords: string[] }> => {
     logger.debug('Running keyword extractor transformer');
+    
+    const maxKeywords = typeof config?.maxKeywords === 'number' ? config.maxKeywords : 10;
     
     // Make a copy of the data
     const result = { ...data };
@@ -76,7 +80,7 @@ export const keywordExtractorTransformer: ScrapedDataTransformer<ScrapedData & {
     // Sort by frequency
     const keywords = Object.entries(wordCounts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
+      .slice(0, maxKeywords)
       .map(([word]) => word);
     
     return {

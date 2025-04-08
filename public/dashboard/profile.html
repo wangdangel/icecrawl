@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Profile - IceCrawl</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" />
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="min-h-screen flex flex-col">
+    <nav class="bg-indigo-600 text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+        <a href="index.html" class="text-xl font-bold">IceCrawl</a>
+        <a href="index.html" class="text-sm font-medium hover:underline">Back to Dashboard</a>
+      </div>
+    </nav>
+    <main class="flex-grow py-10">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">User Profile</h1>
+        <div class="bg-white shadow rounded-lg p-6 space-y-4" id="profile-container">
+          <p class="text-gray-500">Loading profile...</p>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-white border-t border-gray-200 py-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-400">
+        &copy; 2025 IceCrawl. All rights reserved.
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import AuthService from './js/services/auth-service.js';
+
+    const container = document.getElementById('profile-container');
+
+    async function loadProfile() {
+      const token = AuthService.getToken();
+      if (!token) {
+        container.innerHTML = '<p class="text-red-500">Not authenticated.</p>';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users/me', {
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await response.json();
+        const user = data.user;
+
+        container.innerHTML = `
+          <div>
+            <h2 class="text-xl font-semibold mb-2">Username</h2>
+            <p class="text-gray-700">${user.username}</p>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold mb-2">Email</h2>
+            <p class="text-gray-700">${user.email || 'N/A'}</p>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold mb-2">Role</h2>
+            <p class="text-gray-700">${user.role || 'user'}</p>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold mb-2">Status</h2>
+            <p class="text-gray-700">${user.isActive ? 'Active' : 'Inactive'}</p>
+          </div>
+        `;
+      } catch (error) {
+        console.error(error);
+        container.innerHTML = '<p class="text-red-500">Error loading profile.</p>';
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

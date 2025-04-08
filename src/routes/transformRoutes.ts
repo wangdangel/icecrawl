@@ -140,4 +140,67 @@ router.get('/transformers', (_req: Request, res: Response) => {
   });
 });
 
+/**
+ * POST /api/transform/transformers/:name/apply
+ * Apply a single transformer to provided content
+ */
+router.post('/transformers/:name/apply', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const transformerName = req.params.name;
+    const { content, config } = req.body;
+
+    if (typeof content !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'Missing or invalid content' });
+    }
+
+    const transformer = pipelineManager['transformers'].get(transformerName);
+    if (!transformer) {
+      return res.status(404).json({ status: 'error', message: `Transformer not found: ${transformerName}` });
+    }
+
+    const input = { content }; // minimal ScrapedData
+    const result = await transformer.transform(input, config);
+
+    res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/transform/pipelines/:name/run
+ * Run a pipeline on provided content
+ */
+router.post('/pipelines/:name/run', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const pipelineName = req.params.name;
+    const { content, stepConfigs } = req.body;
+
+    if (typeof content !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'Missing or invalid content' });
+    }
+
+    const pipeline = pipelineManager['pipelines'].get(pipelineName);
+    if (!pipeline) {
+      return res.status(404).json({ status: 'error', message: `Pipeline not found: ${pipelineName}` });
+    }
+
+    // Clone pipeline and inject step configs if provided
+    const pipelineWithConfigs = {
+      ...pipeline,
+      steps: pipeline.steps.map((step, idx) => ({
+        ...step,
+        config: stepConfigs?.[idx] || step.config
+      }))
+    };
+
+    const input = { content }; // minimal ScrapedData
+    const result = await pipelineManager.runPipeline(pipelineName, input);
+
+    res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

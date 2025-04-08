@@ -4,6 +4,11 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [ ] Review and improve Transform Content pipeline (Added: 2025-04-07)
+    - Review backend transformer modules (`src/transformers/`)
+    - Review dashboard UI for content transformation
+    - Fix bugs, improve modularity, and ensure maintainability
+
 - [x] Fix crawler extracting 0 links during crawl jobs (Added: 2025-04-07)
     - Logs show `"Extracted links count": 0` even for pages known to have links.
     - This prevents the crawler from finding subsequent pages to crawl.
@@ -46,6 +51,11 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 *
 
 ### Maintenance (Added: 2025-04-07)
+
+- [x] Fix 'Unexpected token <' error when deleting scrapes (Added: 2025-04-07)
+    - **Cause:** Frontend called DELETE `/api/dashboard/scrape/:id` which did not exist, backend returned HTML 404 page, causing JSON parse error.
+    - **Fix:** Implemented DELETE `/api/dashboard/scrape/:id` route in `dashboard-routes.ts` and `DashboardController.deleteScrape` method to delete `ScrapedPage` and return JSON response.
+
 - [x] Ensure Global Installation (`npm install -g icecrawl`) Works Smoothly
     - [x] Verify `bin` configuration in `package.json`
     - [x] Examine/modify `scripts/install-script.js` for post-install setup
