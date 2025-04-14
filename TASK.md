@@ -4,6 +4,12 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 
 ## High Priority Tasks
 
+- [ ] Debug Vector Database Query Returns Zero Results (Added: 2025-04-11)
+    - Investigate why querying the vector database from the UI returns zero results for common terms that should exist.
+    - Do not run the full database checking script until it is rewritten to return a much smaller amount of data.
+    - Check vector DB integration, query logic, and UI/API connection.
+    - Propose a safe, incremental approach to diagnose the issue.
+
 - [ ] Implement Sitemap Generation Feature (Added: 2025-04-07)
     - Create a new crawl mode that discovers all internal links within a domain.
     - Instead of saving page content, it builds a hierarchical sitemap structure.
@@ -120,12 +126,6 @@ This document tracks the tasks required to implement and maintain the Web Scrape
 ## Medium Priority Tasks
 
 ### Features (Added: 2025-04-07)
-- [ ] Implement Pagination Following Feature
-    - [ ] Modify core scraper/crawler logic (accept selector/limit)
-    - [ ] Implement sequential page navigation/scraping
-    - [ ] Update API/MCP to accept parameters
-    - [ ] Add UI elements to Dashboard modals
-- [ ] Implement Dashboard - Scheduled Jobs
 - [ ] Implement Dashboard - Profile/Settings
 - [ ] Implement Dashboard - Transformers Page
 - [ ] Implement Dashboard - Scrape/Crawl Options (Add relevant options like output format, useBrowser, etc. to modals)
