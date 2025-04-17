@@ -123,6 +123,7 @@ model ApiKey {
 
 model CrawlJob {
   id           String    @id @default(uuid())
+  title        String?   // Optional title for forum or crawl jobs
   startUrl     String
   status       String // "pending", "processing", "completed", "completed_with_errors", "failed"
   startTime    DateTime?
@@ -139,8 +140,20 @@ model CrawlJob {
   sitemap      String?   // JSON string representing the sitemap structure
 
   scrapedPages ScrapedPage[] // Relation to all pages crawled in this job
+  forumPosts   ForumPost[] // Relation to all forum posts crawled in this job
 
   @@index([status])
   @@index([userId])
   @@index([createdAt])
+}
+
+model ForumPost {
+  id      Int     @id @default(autoincrement())
+  title   String
+  content String
+  url     String
+  meta    String
+  jobId   String?
+  crawlJob CrawlJob? @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  @@index([jobId])
 }

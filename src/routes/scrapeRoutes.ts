@@ -20,6 +20,7 @@ const scrapeJobSchema = z.object({
   category: z.string().optional(),
   notes: z.string().optional(),
   useBrowser: z.boolean().optional().default(false), // Add useBrowser
+  browserType: z.enum(["desktop", "mobile"]).optional().default("desktop"), // Add browserType
   // Add other potential job options here if needed
 });
 
@@ -148,7 +149,7 @@ router.post('/', scrapingRateLimiter, async (req: Request, res: Response, next: 
       return res.status(401).json({ status: 'error', message: 'User not authenticated' });
     }
 
-    const { url, category, notes, useBrowser } = parsedInput.data;
+    const { url, category, notes, useBrowser, browserType } = parsedInput.data;
 
     // Create a ScrapeJob record in the database
     const newJob = await prisma.scrapeJob.create({
@@ -161,6 +162,7 @@ router.post('/', scrapingRateLimiter, async (req: Request, res: Response, next: 
           category: category,
           notes: notes,
           useBrowser: useBrowser, 
+          browserType: browserType,
         }), 
       },
     });

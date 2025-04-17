@@ -6,7 +6,6 @@
 import AuthService from './services/auth-service.js';
 import Navigation from './components/navigation.js';
 import DashboardController from './controllers/dashboard-controller.js';
-import ScrapeController from './controllers/scrapes-controller.js';
 import JobsController from './controllers/jobs-controller.js';
 import CrawlController from './controllers/crawl-controller.js';
 import TransformerController from './controllers/transformers-controller.js';
@@ -30,7 +29,6 @@ const App = {
     // Setup controllers
     this.controllers = {
       dashboard: new DashboardController(),
-      scrapes: new ScrapeController(),
       jobs: new JobsController(),
       crawlJobs: new CrawlController(),
       transformers: new TransformerController()
@@ -59,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (profileLink) {
     profileLink.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.href = 'settings.html';
+      // Profile logic
     });
   }
 

@@ -6,6 +6,8 @@ import { AuthService } from '../services/authService';
 import { SessionService } from '../services/sessionService';
 // Remove EnhancedUserService import
 // Remove generateToken import (now in AuthService)
+import prisma from '../db/prismaClient'; // Import shared instance
+import type { Prisma, User } from '@prisma/client';
 import logger from '../utils/logger';
 
 // Validation schema for login

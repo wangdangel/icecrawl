@@ -64,6 +64,15 @@ export class PipelineManager {
   }
   
   /**
+   * Get a pipeline by name
+   * @param name - Pipeline name
+   * @returns PipelineConfig or undefined
+   */
+  public getPipeline(name: string): PipelineConfig | undefined {
+    return this.pipelines.get(name);
+  }
+  
+  /**
    * Run a pipeline on input data
    * 
    * @param pipelineName - Name of the pipeline to run

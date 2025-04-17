@@ -24,7 +24,9 @@ import dashboardRoutes from './routes/dashboard-routes';
 import healthRoutes from './routes/healthRoutes';
 import viewScrapeRoutes from './routes/viewScrapeRoutes';
 import crawlRoutes from './routes/crawlRoutes'; // Import crawl routes
+import forumRoutes from './routes/forumRoutes'; // Import forum routes
 import { startWorker } from './core/worker'; // Import the worker starter function
+import { createForumDatabase } from './controllers/forumController';
 
 // Initialize express app
 const app = express();
@@ -111,19 +113,6 @@ app.get('/dashboard(/)?', (req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// REMOVED: Explicit redirect for /dashboard
-/*
-app.get('/dashboard', (req: Request, res: Response) => {
-  res.redirect('/dashboard/');
-});
-*/
-
-// REMOVED: General static file serving (Re-added above)
-// app.use(express.static(path.join(__dirname, '../public')));
-
-// REMOVED: Specific static file serving for dashboard
-// app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard')));
-
 // Error handling middleware
 const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction) => {
   logger.error({
@@ -167,27 +156,15 @@ app.use('/api/crawl', authenticate, crawlRoutes); // Mount crawl routes
 app.use('/api/dashboard', authenticate, dashboardRoutes); // Keep authentication for API
 // Mount view scrape routes (remove authentication middleware for direct viewing)
 app.use('/scrape', viewScrapeRoutes);
-// REMOVED: Static files for dashboard (Handled by general static middleware now)
-// app.use('/dashboard', express.static(path.join(__dirname, '../public/dashboard'), { index: 'index.html' }));
 app.use('/health', healthRoutes);
+// Public endpoint for creating forum DB (before auth middleware)
+app.post('/api/forum/create-forum-db', createForumDatabase);
+app.use('/api/forum', authenticate, forumRoutes); // Mount forum routes
 
 // Default route - redirect root to /dashboard/ (with trailing slash)
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/dashboard/'); // Add trailing slash
 });
-
-// REMOVED: Catch-all route for SPA - Let unmatched routes 404 naturally
-/*
-app.get('*', (req: Request, res: Response) => {
-  // Check if request is for API
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ status: 'error', message: 'API endpoint not found' });
-  }
-
-  // For non-API routes, redirect to dashboard
-  res.redirect('/dashboard');
-});
-*/
 
 // Apply error handler
 app.use(errorHandler);

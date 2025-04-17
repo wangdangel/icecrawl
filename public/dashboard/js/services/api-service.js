@@ -79,6 +79,16 @@ const ApiService = {
     },
     
     /**
+     * Get recent jobs (scrape, crawl, forum)
+     * @param {number} limit - Number of jobs to fetch
+     * @returns {Promise<Array>} Recent jobs
+     */
+    async getRecentJobs(limit = 5) {
+      const result = await ApiService.request(`/api/dashboard/recent-jobs?limit=${limit}`);
+      return result.data.jobs;
+    },
+    
+    /**
      * Get available tags
      * @returns {Promise<Array>} Tags
      */
@@ -243,7 +253,19 @@ const ApiService = {
         body: JSON.stringify(crawlData)
       });
       return result.data;
-    }
+    },
+    
+    /**
+     * Cancel a crawl job
+     * @param {string} id - Crawl job ID
+     * @returns {Promise<Object>} Result
+     */
+    async cancelCrawlJob(id) {
+      const result = await ApiService.request(`/api/crawl/${id}/cancel`, {
+        method: 'POST'
+      });
+      return result;
+    },
   },
   
   /**

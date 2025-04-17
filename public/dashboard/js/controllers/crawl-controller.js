@@ -148,6 +148,7 @@ class CrawlController {
     
     this.state.jobs.forEach(job => {
       const statusClass = getStatusClass(job.status);
+      const isCancellable = job.status === 'pending' || job.status === 'in_progress';
       
       this.elements.crawlJobsTable.innerHTML += `
         <tr>
@@ -174,9 +175,10 @@ class CrawlController {
             <button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="view-crawl">
               <i class="fas fa-info-circle"></i> Details
             </button>
-            <button class="text-red-600 hover:text-red-900" data-id="${job.id}" data-action="delete-crawl-job">
+            <button class="text-red-600 hover:text-red-900 mr-2" data-id="${job.id}" data-action="delete-crawl-job">
               <i class="fas fa-trash"></i>
             </button>
+            ${isCancellable ? `<button class="text-yellow-600 hover:text-yellow-900" data-id="${job.id}" data-action="cancel-crawl-job"><i class="fas fa-ban"></i> Cancel</button>` : ''}
           </td>
         </tr>`;
     });
@@ -188,6 +190,10 @@ class CrawlController {
     
     this.elements.crawlJobsTable.querySelectorAll('[data-action="delete-crawl-job"]').forEach(button => {
       button.addEventListener('click', e => this.handleCrawlJobDelete(e));
+    });
+    
+    this.elements.crawlJobsTable.querySelectorAll('[data-action="cancel-crawl-job"]').forEach(button => {
+      button.addEventListener('click', e => this.handleCrawlJobCancel(e));
     });
   }
   
@@ -242,6 +248,24 @@ class CrawlController {
         await this.loadCrawlJobs(); // Refresh crawl jobs table
       } catch (error) {
         console.error('Error deleting crawl job:', error);
+        alert(`Error: ${error.message}`);
+      }
+    }
+  }
+  
+  /**
+   * Handle crawl job cancel
+   * @param {Event} e - Click event
+   */
+  async handleCrawlJobCancel(e) {
+    const id = e.currentTarget.dataset.id;
+    if (confirm('Are you sure you want to cancel this crawl job?')) {
+      try {
+        await ApiService.crawlJobs.cancelCrawlJob(id);
+        await this.loadCrawlJobs(); // Refresh crawl jobs table
+        alert('Crawl job cancelled.');
+      } catch (error) {
+        console.error('Error cancelling crawl job:', error);
         alert(`Error: ${error.message}`);
       }
     }

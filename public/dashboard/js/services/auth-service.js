@@ -59,4 +59,7 @@ const AuthService = {
   }
 };
 
+// Make AuthService available globally
+window.AuthService = AuthService;
+
 export default AuthService;

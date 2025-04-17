@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum Jobs | IceCrawl</title>
+  <link rel="stylesheet" href="/dashboard/css/style.css">
+  <link rel="stylesheet" href="/dashboard/css/theme.css">
+  <link rel="stylesheet" href="/dashboard/css/table.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link href="https://unpkg.com/tailwindcss@^2.0/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <nav class="bg-indigo-600 text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <div class="flex-shrink-0 flex items-center">
+              <a href="/dashboard/index.html" class="flex items-center group">
+                <img src="/dashboard/img/logo.png" alt="IceCrawl Logo" class="h-8 w-8 mr-2" />
+                <span class="text-xl font-bold group-hover:text-indigo-200 transition">IceCrawl</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <nav id="main-nav"></nav>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+          <i class="fas fa-comments text-indigo-600 mr-3"></i> Forum Jobs
+        </h1>
+        <button id="new-forum-job-btn" class="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow transition">
+          <i class="fas fa-plus-circle mr-2"></i> New Forum Job
+        </button>
+      </div>
+      <div id="forum-jobs-table-wrapper" class="bg-white shadow rounded-lg overflow-hidden">
+        <table id="forum-jobs-table" class="min-w-full table-auto"></table>
+      </div>
+      <!-- Reader Modal (full page style) -->
+      <div id="forum-reader-modal" class="modal" style="display:none;">
+        <div class="modal-content max-w-3xl mx-auto">
+          <span class="close" id="close-forum-reader-modal">&times;</span>
+          <h2 class="text-2xl font-semibold mb-4"><i class="fas fa-book-reader text-indigo-600 mr-2"></i>Forum Project Reader</h2>
+          <div id="forum-reader-content"></div>
+        </div>
+      </div>
+      <!-- New Forum Job Modal -->
+      <div id="forum-job-modal" class="modal" style="display:none;">
+        <div class="modal-content max-w-lg mx-auto">
+          <span class="close" id="close-forum-job-modal">&times;</span>
+          <h2 class="text-xl font-semibold mb-4">New Forum Job</h2>
+          <form id="forum-job-form" class="space-y-4">
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Start URL</span>
+              <input type="text" id="forum-start-url" required class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Post Selector</span>
+              <input type="text" id="forum-post-selector" value=".post" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Next Page Selector</span>
+              <input type="text" id="forum-next-page-selector" value="a.page-link" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Next Page Text</span>
+              <input type="text" id="forum-next-page-text" value="Next" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Max Pages (optional)</span>
+              <input type="number" id="forum-max-pages" min="1" placeholder="All" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <label class="block">
+              <span class="block text-sm font-medium text-gray-700">Output Type</span>
+              <select id="forum-output-type" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="default">Default Database</option>
+                <option value="sqlite">Standalone SQLite File</option>
+              </select>
+            </label>
+            <label class="block" id="forum-db-path-label" style="display:none;">
+              <span class="block text-sm font-medium text-gray-700">SQLite File Path</span>
+              <input type="text" id="forum-db-path" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            </label>
+            <button type="submit" class="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow">Start Forum Job</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="/dashboard/js/components/navigation.js"></script>
+  <script type="module" src="/dashboard/js/services/auth-service.js"></script>
+  <script type="module" src="/dashboard/js/forum.js"></script>
+  <script type="module" src="/dashboard/forum-job-modal.js"></script>
+  <script>
+    // Auto-open the forum job modal if redirected from dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('new') === '1') {
+        const btn = document.getElementById('new-forum-job-btn');
+        if (btn) btn.click();
+      }
+    });
+  </script>
+</body>
+</html>

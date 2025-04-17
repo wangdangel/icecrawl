@@ -17,6 +17,7 @@ const startCrawlSchema = z.object({
   useCache: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
   mode: z.enum(['content', 'sitemap']).optional().default('content'), // New: crawl mode
+  browserType: z.enum(["desktop", "mobile"]).optional().default("desktop"), // Add browserType
 });
 
 // Helper to call MCP tool get_crawl_job_result
@@ -77,6 +78,11 @@ const getCrawlResultSchema = z.object({
  *               timeout:
  *                  type: integer
  *                  description: Override default request timeout for pages in this crawl.
+ *               browserType:
+ *                  type: string
+ *                  enum: [desktop, mobile]
+ *                  default: desktop
+ *                  description: The type of browser to use for the crawl.
  *     responses:
  *       201:
  *         description: Crawl job submitted successfully.
@@ -329,25 +335,34 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
   }
 });
 
-// Placeholder for ScrapedPageData schema definition if needed for Swagger
 /**
- * @swagger
- * components:
- *   schemas:
- *     ScrapedPageData:
- *       type: object
- *       properties:
- *         title:
- *           type: string
- *         markdown:
- *           type: string
- *         metadata:
- *           type: object
- *         scrapedAt:
- *           type: string
- *           format: date-time
+ * Cancel a crawl job (set status to 'cancelled')
+ * POST /api/crawl/:jobId/cancel
  */
-
+router.post('/:jobId/cancel', authenticate, async (req, res, next) => {
+  try {
+    const jobId = req.params.jobId;
+    const userId = req.user!.id;
+    const job = await prisma.crawlJob.findUnique({ where: { id: jobId } });
+    if (!job) {
+      return res.status(404).json({ status: 'error', message: 'Crawl job not found' });
+    }
+    if (job.userId && job.userId !== userId) {
+      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
+    }
+    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+      return res.status(400).json({ status: 'error', message: 'Job is already finished.' });
+    }
+    await prisma.crawlJob.update({
+      where: { id: jobId },
+      data: { status: 'cancelled', endTime: new Date(), error: 'Cancelled by user.' },
+    });
+    return res.json({ status: 'success', message: 'Crawl job cancelled.' });
+  } catch (error) {
+    logger.error({ message: 'Error cancelling crawl job', jobId: req.params.jobId, error });
+    next(error);
+  }
+});
 
 /**
  * DELETE /api/crawl/:jobId

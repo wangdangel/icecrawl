@@ -10,13 +10,6 @@ import Navigation from './navigation.js';
  * Modal elements cache
  */
 const elements = {
-  // New scrape modal
-  newScrapeModal: null,
-  scrapeCancelButton: null,
-  scrapeSubmitButton: null,
-  newScrapeForm: null,
-  newScrapeButton: null,
-  
   // New crawl modal
   newCrawlModal: null,
   crawlCancelButton: null,
@@ -38,13 +31,6 @@ function setupModals(controllers) {
  * Cache modal DOM elements
  */
 function cacheElements() {
-  // New scrape modal
-  elements.newScrapeModal = document.getElementById('new-scrape-modal');
-  elements.scrapeCancelButton = document.getElementById('scrape-cancel');
-  elements.scrapeSubmitButton = document.getElementById('scrape-submit');
-  elements.newScrapeForm = document.getElementById('new-scrape-form');
-  elements.newScrapeButton = document.getElementById('new-scrape-button');
-  
   // New crawl modal
   elements.newCrawlModal = document.getElementById('new-crawl-modal');
   elements.crawlCancelButton = document.getElementById('crawl-cancel');
@@ -58,19 +44,6 @@ function cacheElements() {
  * @param {Object} controllers - Page controllers
  */
 function bindEvents(controllers) {
-  // New scrape modal
-  if (elements.newScrapeButton) {
-    elements.newScrapeButton.addEventListener('click', showNewScrapeModal);
-  }
-  
-  if (elements.scrapeCancelButton) {
-    elements.scrapeCancelButton.addEventListener('click', hideNewScrapeModal);
-  }
-  
-  if (elements.scrapeSubmitButton) {
-    elements.scrapeSubmitButton.addEventListener('click', () => submitNewScrape(controllers));
-  }
-  
   // New crawl modal
   if (elements.newCrawlButton) {
     elements.newCrawlButton.addEventListener('click', showNewCrawlModal);
@@ -82,27 +55,6 @@ function bindEvents(controllers) {
   
   if (elements.crawlSubmitButton) {
     elements.crawlSubmitButton.addEventListener('click', () => submitNewCrawl(controllers));
-  }
-}
-
-/**
- * Show new scrape modal
- */
-function showNewScrapeModal() {
-  if (elements.newScrapeModal) {
-    elements.newScrapeModal.classList.remove('hidden');
-  }
-}
-
-/**
- * Hide new scrape modal
- */
-function hideNewScrapeModal() {
-  if (elements.newScrapeModal) {
-    elements.newScrapeModal.classList.add('hidden');
-    if (elements.newScrapeForm) {
-      elements.newScrapeForm.reset();
-    }
   }
 }
 
@@ -128,43 +80,6 @@ function hideNewCrawlModal() {
 }
 
 /**
- * Submit new scrape form
- * @param {Object} controllers - Page controllers
- */
-async function submitNewScrape(controllers) {
-  try {
-    const url = document.getElementById('scrape-url').value;
-    const category = document.getElementById('scrape-category').value;
-    const notes = document.getElementById('scrape-notes').value;
-    const useBrowser = document.getElementById('scrape-browser').checked;
-    
-    if (!url) {
-      alert('Please enter a URL');
-      return;
-    }
-    
-    await ApiService.scrapes.createScrape({
-      url,
-      category,
-      notes,
-      useBrowser
-    });
-    
-    hideNewScrapeModal();
-    alert('Scrape job submitted successfully. Track status on the Scrape Jobs page.');
-    
-    // Refresh data if needed
-    if (Navigation.activePage === 'dashboard') {
-      controllers.dashboard.init();
-    } else if (Navigation.activePage === 'jobs') {
-      controllers.jobs.init();
-    }
-  } catch (error) {
-    alert(`Error: ${error.message}`);
-  }
-}
-
-/**
  * Submit new crawl form
  * @param {Object} controllers - Page controllers
  */
@@ -175,6 +90,7 @@ async function submitNewCrawl(controllers) {
     const domainScope = document.getElementById('crawl-domain-scope').value;
     const useBrowser = document.getElementById('crawl-browser').checked;
     const mode = document.getElementById('crawl-mode')?.value || 'content';
+    const browserType = document.querySelector('input[name="crawlBrowserType"]:checked')?.value || 'desktop';
     
     if (!startUrl) {
       alert('Please enter a Start URL');
@@ -191,7 +107,8 @@ async function submitNewCrawl(controllers) {
       maxDepth,
       domainScope,
       useBrowser,
-      mode
+      mode,
+      browserType
     });
     
     hideNewCrawlModal();
@@ -206,8 +123,6 @@ async function submitNewCrawl(controllers) {
 
 export {
   setupModals,
-  showNewScrapeModal,
-  hideNewScrapeModal,
   showNewCrawlModal,
   hideNewCrawlModal
 };

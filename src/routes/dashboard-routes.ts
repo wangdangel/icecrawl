@@ -337,6 +337,9 @@ router.delete('/scrape/:id', authenticate, DashboardController.deleteScrape); //
  */
 router.get('/crawl-jobs', authenticate, DashboardController.getCrawlJobs); // Use new controller method
 
+// Unified recent jobs endpoint
+router.get('/recent-jobs', authenticate, DashboardController.getRecentJobs);
+
 // TODO: Add endpoints for deleting/retrying crawl jobs if needed
 
 // Export router

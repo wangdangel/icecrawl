@@ -15,6 +15,7 @@ export interface CrawlJobOptions {
   timeout?: number;
   retries?: number;
   useCache?: boolean;
+  browserType?: 'desktop' | 'mobile';
 }
 
 export interface CrawlJobData {
@@ -230,6 +231,7 @@ export class Crawler {
         timeout: this.options.timeout,
         retries: 0, // Disable scrapeUrl's internal retries, worker handles retry phase
         useBrowser: this.options.useBrowser,
+        browserType: this.options.browserType, // Pass browserType to scraper
       });
 
       logger.debug({ message: 'Fetched page content snippet', url, snippet: scrapedData.content?.substring(0, 500), jobId: this.job.id });

@@ -3,6 +3,9 @@ import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 import { scrapeUrl } from './scraper';
 import { Crawler } from './crawler'; // Import the new Crawler class
+import { SitemapCrawler } from './sitemapCrawler';
+import { ForumScraper } from './forumScraper';
+const cheerio = require('cheerio');
 
 const POLLING_INTERVAL_MS = 10000; // Check for jobs every 10 seconds
 let isScrapeProcessing = false; // Lock for scrape jobs
@@ -53,10 +56,45 @@ async function processPendingJobs() {
         take: 1, // Process one crawl job at a time to avoid overwhelming resources
       });
 
+      logger.info({
+        message: 'Fetched pending crawl jobs',
+        count: pendingCrawlJobs.length,
+        jobIds: pendingCrawlJobs.map(j => j.id),
+        jobs: pendingCrawlJobs.map(j => ({ id: j.id, status: j.status, options: j.options, startUrl: j.startUrl })),
+      });
+
       if (pendingCrawlJobs.length > 0) {
-        logger.info(`Found ${pendingCrawlJobs.length} pending crawl job(s). Processing...`);
         for (const job of pendingCrawlJobs) {
+          logger.info({
+            message: 'Processing crawl job candidate',
+            jobId: job.id,
+            status: job.status,
+            options: job.options,
+            startUrl: job.startUrl,
+          });
+          let options = {};
+          try {
+            options = job.options ? JSON.parse(job.options) : {};
+            logger.info({ message: 'Parsed job options', jobId: job.id, options });
+          } catch (e) {
+            logger.error({ message: 'Failed to parse crawl job options JSON', jobId: job.id, error: e, rawOptions: job.options });
+          }
+          // Use type guard to avoid TS error
+          if (options && typeof options === 'object' && 'mode' in options && (options as any).mode === 'forum') {
+            logger.info({ message: 'Forum job detected and will be processed', jobId: job.id });
+            // Set status to 'processing' as soon as the worker picks up the forum job
+            try {
+              await prisma.crawlJob.update({
+                where: { id: job.id },
+                data: { status: 'processing', startTime: new Date(), error: null },
+              });
+              logger.info({ message: 'Forum job status set to processing', jobId: job.id });
+            } catch (e) {
+              logger.error({ message: 'Failed to set forum job status to processing', jobId: job.id, error: e });
+            }
+          }
           await processCrawlJob(job); // Use new function
+          logger.info({ message: 'Finished processing crawl job candidate', jobId: job.id });
         }
       } else {
         logger.info('No pending crawl jobs found.');
@@ -155,9 +193,14 @@ async function processScrapeJob(job: any) { // Use 'any' or rely on inference
   }
 }
 
-// New function for processing crawl jobs
-import { SitemapCrawler } from './sitemapCrawler';
+// Helper to check if a crawl job is cancelled
+export async function isCrawlJobCancelled(jobId: string): Promise<boolean> {
+  const job = await prisma.crawlJob.findUnique({ where: { id: jobId }, select: { status: true } });
+  // Treat missing job (deleted) as cancelled
+  return !job || job.status === 'cancelled';
+}
 
+// New function for processing crawl jobs
 async function processCrawlJob(job: any) {
   logger.info(`Processing crawl job ${job.id} for start URL: ${job.startUrl}`);
   try {
@@ -175,13 +218,53 @@ async function processCrawlJob(job: any) {
     if (mode === 'sitemap') {
       logger.info({ message: 'Starting sitemap crawl mode', jobId: job.id });
       crawler = new SitemapCrawler(job);
+    } else if (mode === 'forum') {
+      logger.info({ message: 'Starting forum scrape mode', jobId: job.id });
+      // Use generic selectors, allow override via job options
+      const postSelector = options.postSelector || '.post';
+      const nextPageSelector = options.nextPageSelector || 'a.page-link';
+      const nextPageText = options.nextPageText || 'Next';
+      const output = options.output || 'default';
+      const filePath = options.filePath;
+      const scraper = new ForumScraper({
+        startUrl: job.startUrl,
+        postSelector,
+        nextPageSelector,
+        nextPageText,
+        output,
+        filePath,
+        maxPages: options.maxPages, // Ensure maxPages is passed to the scraper
+        jobId: job.id // Pass jobId for cancellation checks
+      });
+      let cancelled = false;
+      try {
+        // Run the scraper's own logic (handles pagination, maxPages, DB, etc)
+        await scraper.scrape();
+      } catch (err) {
+        logger.error({ message: 'Error in ForumScraper.scrape', error: err });
+        throw err;
+      }
+      if (await isCrawlJobCancelled(job.id)) {
+        cancelled = true;
+      }
+      await prisma.crawlJob.update({
+        where: { id: job.id },
+        data: { status: cancelled ? 'cancelled' : 'completed', endTime: new Date(), error: cancelled ? 'Cancelled by user.' : null },
+      });
+      return;
     } else {
       crawler = new Crawler(job);
     }
 
+    // Default Crawler: just run the crawl
     const result = await crawler.run();
-
     logger.info({ message: `Crawl job ${job.id} finished`, status: result.status, failedCount: result.failedUrls.length });
+    if (await isCrawlJobCancelled(job.id)) {
+      await prisma.crawlJob.update({
+        where: { id: job.id },
+        data: { status: 'cancelled', endTime: new Date(), error: 'Cancelled by user.' },
+      });
+    }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error during crawl';

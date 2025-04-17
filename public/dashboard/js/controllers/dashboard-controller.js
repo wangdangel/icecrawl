@@ -19,7 +19,7 @@ class DashboardController {
     if (this.initialized) {
       // Just refresh data if already initialized
       await this.loadDashboardStats();
-      await this.loadRecentScrapes();
+      await this.loadRecentJobs();
       return;
     }
     
@@ -29,7 +29,7 @@ class DashboardController {
     try {
       await Promise.all([
         this.loadDashboardStats(),
-        this.loadRecentScrapes()
+        this.loadRecentJobs()
       ]);
       
       this.initialized = true;
@@ -86,14 +86,14 @@ class DashboardController {
   }
   
   /**
-   * Load recent scrapes
+   * Load recent jobs
    */
-  async loadRecentScrapes() {
+  async loadRecentJobs() {
     try {
-      const scrapes = await ApiService.dashboard.getRecentScrapes(5);
-      this.renderRecentScrapes(scrapes);
+      const jobs = await ApiService.dashboard.getRecentJobs(5);
+      this.renderRecentJobs(jobs);
     } catch (error) {
-      console.error('Error loading recent scrapes:', error);
+      console.error('Error loading recent jobs:', error);
     }
   }
   
@@ -135,39 +135,36 @@ class DashboardController {
   }
   
   /**
-   * Render recent scrapes table
-   * @param {Array} scrapes - Scrapes data
+   * Render recent jobs table (shows recent scrape, crawl, and forum jobs)
+   * @param {Array} jobs - Jobs data
    */
-  renderRecentScrapes(scrapes) {
-    const table = document.getElementById('recent-scrapes-table');
-    
+  renderRecentJobs(jobs) {
+    const table = document.getElementById('recent-jobs-table');
     if (!table) {
-      console.error('Recent scrapes table element not found');
+      console.error('Recent jobs table element not found');
       return;
     }
-    
     table.innerHTML = '';
-    
-    if (scrapes.length === 0) {
+    if (jobs.length === 0) {
       table.innerHTML = `
         <tr>
-          <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="2">
-            No scrapes found
+          <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0" colspan="3">
+            No recent jobs found
           </td>
         </tr>`;
       return;
     }
-    
-    scrapes.forEach(scrape => {
+    jobs.forEach(job => {
       table.innerHTML += `
         <tr>
           <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-            <a href="/scrape/${scrape.id}" class="text-indigo-600 hover:text-indigo-900">
-              ${scrape.title || 'Untitled'}
-            </a>
+            ${job.title || job.startUrl || 'Untitled'}
           </td>
           <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-            ${formatRelativeDate(scrape.createdAt)}
+            ${job.type || 'unknown'}
+          </td>
+          <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+            ${formatRelativeDate(job.createdAt)}
           </td>
         </tr>`;
     });

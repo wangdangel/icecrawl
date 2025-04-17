@@ -180,7 +180,7 @@ router.post('/pipelines/:name/run', async (req: Request, res: Response, next: Ne
       return res.status(400).json({ status: 'error', message: 'Missing or invalid content' });
     }
 
-    const pipeline = pipelineManager['pipelines'].get(pipelineName);
+    const pipeline = pipelineManager.getPipeline(pipelineName);
     if (!pipeline) {
       return res.status(404).json({ status: 'error', message: `Pipeline not found: ${pipelineName}` });
     }

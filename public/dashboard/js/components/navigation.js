@@ -3,8 +3,6 @@
  * Manages page navigation and active page tracking
  */
 
-import AuthService from '../services/auth-service.js';
-
 class Navigation {
   constructor() {
     this.activePage = 'dashboard';
@@ -36,7 +34,6 @@ class Navigation {
     // Navigation links
     this.elements.navLinks = {
       dashboard: document.getElementById('nav-dashboard'),
-      scrapes: document.getElementById('nav-scrapes'),
       jobs: document.getElementById('nav-jobs'),
       crawlJobs: document.getElementById('nav-crawl-jobs'),
       transformers: document.getElementById('nav-transformers')
@@ -45,7 +42,6 @@ class Navigation {
     // Pages
     this.elements.pages = {
       dashboard: document.getElementById('page-dashboard'),
-      scrapes: document.getElementById('page-scrapes'),
       jobs: document.getElementById('page-jobs'),
       crawlJobs: document.getElementById('page-crawl-jobs'),
       transformers: document.getElementById('page-transformers')
@@ -55,9 +51,6 @@ class Navigation {
     this.elements.userMenu = document.getElementById('user-menu');
     this.elements.userMenuButton = document.getElementById('user-menu-button');
     this.elements.userMenuLogout = document.getElementById('user-menu-logout');
-    
-    // View all scrapes link
-    this.elements.viewAllScrapes = document.getElementById('view-all-scrapes');
   }
   
   /**
@@ -82,14 +75,6 @@ class Navigation {
     // Logout button
     if (this.elements.userMenuLogout) {
       this.elements.userMenuLogout.addEventListener('click', () => AuthService.logout());
-    }
-    
-    // View all scrapes link
-    if (this.elements.viewAllScrapes) {
-      this.elements.viewAllScrapes.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.navigateTo('scrapes');
-      });
     }
   }
   
@@ -179,4 +164,9 @@ class Navigation {
 }
 
 // Singleton instance
-export default new Navigation();
+if (!window.Navigation) {
+  window.Navigation = new Navigation();
+}
+
+const navigation = new Navigation();
+export default navigation;

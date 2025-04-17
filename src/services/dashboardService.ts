@@ -1,6 +1,6 @@
-import { PrismaClient, Prisma, ScrapedPage, ScrapeJob, CrawlJob, Tag } from '@prisma/client'; // Standard Prisma import
 import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
+import type { Prisma, Tag, CrawlJob, ScrapeJob } from '@prisma/client'; // Import types only
 
 // Define interfaces for data structures if needed, or import from shared types
 // Consider moving these to a shared types file if used elsewhere
@@ -591,6 +591,61 @@ export class DashboardService {
       throw new Error('Failed to retrieve crawl jobs.');
       // Previous behavior: return { jobs: [], total: 0 };
     }
+  }
+
+  /**
+   * Get recent jobs (scrape, crawl, forum) for a user, merged and sorted by createdAt descending.
+   * @param userId - The ID of the user.
+   * @param limit - Max number of jobs to return (total, not per type)
+   * @returns Array of recent jobs (mixed types)
+   */
+  static async getRecentJobs(userId: string, limit: number) {
+    // Fetch recent scrape jobs
+    const scrapeJobs = await prisma.scrapeJob.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        createdAt: true,
+        status: true,
+        url: true,
+      },
+    });
+    // Fetch recent crawl jobs
+    const crawlJobs = await prisma.crawlJob.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        createdAt: true,
+        status: true,
+        startUrl: true,
+      },
+    });
+    // Map all jobs to a common shape
+    const jobs = [
+      ...scrapeJobs.map(j => ({
+        id: j.id,
+        createdAt: j.createdAt,
+        status: j.status,
+        url: j.url,
+        title: null, // ScrapeJob has no title
+        type: 'scrape',
+      })),
+      ...crawlJobs.map(j => ({
+        id: j.id,
+        createdAt: j.createdAt,
+        status: j.status,
+        url: j.startUrl,
+        title: null, // CrawlJob has no title in schema
+        type: 'crawl',
+      })),
+    ];
+    // Sort by createdAt descending and return the top N
+    jobs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return jobs.slice(0, limit);
   }
 
   // TODO: Add methods for managing tags (create, update, delete), categories, etc. if needed

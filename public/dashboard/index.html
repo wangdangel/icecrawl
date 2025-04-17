@@ -17,13 +17,16 @@
         <div class="flex justify-between h-16">
           <div class="flex">
             <div class="flex-shrink-0 flex items-center">
-              <span class="text-xl font-bold">IceCrawl</span>
+              <a href="/dashboard/index.html" class="flex items-center group">
+                <img src="/dashboard/img/logo.png" alt="IceCrawl Logo" class="h-8 w-8 mr-2" />
+                <span class="text-xl font-bold group-hover:text-indigo-200 transition">IceCrawl</span>
+              </a>
             </div>
             <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4">
               <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-dashboard">Dashboard</a>
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-scrapes">My Scrapes</a>
               <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-jobs">Scrape Jobs</a>
-              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-crawl-jobs">Crawl Jobs</a> <!-- Added Crawl Jobs Nav -->
+              <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-crawl-jobs">Crawl Jobs</a>
+              <a href="/dashboard/forum.html" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-forum">Forum Jobs</a>
               <a href="#" class="px-3 py-2 rounded-md text-sm font-medium" id="nav-transformers">Transformers</a>
             </div>
           </div>
@@ -48,6 +51,9 @@
               </button>
               <button type="button" class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-800 hover:bg-indigo-700" id="new-scrape-button">
                 <i class="fas fa-plus mr-2"></i> New Scrape
+              </button>
+              <button type="button" class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 ml-2" id="new-forum-job-btn" onclick="window.location.href='/dashboard/forum.html?new=1'">
+                <i class="fas fa-comments mr-2"></i> New Forum Job
               </button>
             </div>
           </div>
@@ -151,14 +157,14 @@
             </div>
           </div>
 
-          <!-- Recent Scrapes and Top Domains -->
+          <!-- Recent Jobs and Top Domains -->
           <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <!-- Recent Scrapes -->
+            <!-- Recent Jobs -->
             <div class="bg-white shadow rounded-lg">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between">
-                  <h2 class="text-lg leading-6 font-medium text-gray-900">Recent Scrapes</h2>
-                  <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500" id="view-all-scrapes">View all</a>
+                  <h2 class="text-lg leading-6 font-medium text-gray-900">Recent Jobs</h2>
+                  <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500" id="view-all-jobs">View all</a>
                 </div>
                 <div class="mt-4 flow-root">
                   <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -166,11 +172,11 @@
                       <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                           <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Title</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">URL</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200" id="recent-scrapes-table">
+                        <tbody class="divide-y divide-gray-200" id="recent-jobs-table">
                           <tr>
                             <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
@@ -205,96 +211,6 @@
                         </tbody>
                       </table>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- My Scrapes Page -->
-      <div class="py-6 hidden" id="page-scrapes">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 class="text-2xl font-semibold text-gray-900">My Scrapes</h1>
-          <div class="mt-6">
-            <!-- Search and Filter Controls -->
-            <div class="bg-white shadow rounded-lg mb-6 p-4">
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
-                  <div class="mt-1 relative rounded-md shadow-sm">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <i class="fas fa-search text-gray-400"></i>
-                    </div>
-                    <input type="text" name="search" id="search" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md" placeholder="Search by title or URL">
-                  </div>
-                </div>
-                <div>
-                  <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                  <select id="category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="">All Categories</option>
-                    <option value="news">News</option>
-                    <option value="tech">Technology</option>
-                    <option value="science">Science</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="tag" class="block text-sm font-medium text-gray-700">Tag</label>
-                  <select id="tag" name="tag" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="">All Tags</option>
-                    <option value="important">Important</option>
-                    <option value="research">Research</option>
-                    <option value="reference">Reference</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scrapes Table -->
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-4 py-5 sm:p-6">
-                <div class="flow-root">
-                  <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                      <table class="min-w-full divide-y divide-gray-300">
-                        <thead>
-                          <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Title</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">URL</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200" id="scrapes-table">
-                          <tr>
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">Loading...</td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">-</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div class="mt-4 flex items-center justify-between">
-                  <div class="text-sm text-gray-700">
-                    Showing <span id="scrapes-pagination-showing">0</span> of <span id="scrapes-pagination-total">0</span> results
-                  </div>
-                  <div>
-                    <nav class="flex items-center" aria-label="Pagination">
-                      <button id="scrapes-pagination-prev" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Previous
-                      </button>
-                      <span class="mx-2 text-gray-700" id="scrapes-pagination-current">1</span>
-                      <button id="scrapes-pagination-next" class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Next
-                      </button>
-                    </nav>
                   </div>
                 </div>
               </div>
@@ -617,77 +533,6 @@
     </footer>
 
     <!-- Modals -->
-    <!-- New Scrape Modal -->
-    <div class="fixed z-10 inset-0 overflow-y-auto hidden" id="new-scrape-modal">
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-        </div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div>
-              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                  New Scrape
-                </h3>
-                <div class="mt-2">
-                  <form id="new-scrape-form">
-                    <div>
-                      <label for="scrape-url" class="block text-sm font-medium text-gray-700">URL</label>
-                      <div class="mt-1">
-                        <input type="url" name="url" id="scrape-url" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="https://example.com" required>
-                      </div>
-                    </div>
-                    <div class="mt-4">
-                      <label for="scrape-category" class="block text-sm font-medium text-gray-700">Category</label>
-                      <div class="mt-1">
-                        <select id="scrape-category" name="category" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
-                          <option value="">None</option>
-                          <option value="news">News</option>
-                          <option value="tech">Technology</option>
-                          <option value="science">Science</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="mt-4">
-                      <label for="scrape-notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                      <div class="mt-1">
-                        <textarea id="scrape-notes" name="notes" rows="3" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
-                      </div>
-                    </div>
-                    <div class="mt-4">
-                      <label class="block text-sm font-medium text-gray-700">Options</label>
-                      <div class="mt-2">
-                        <div class="flex items-start">
-                          <div class="flex items-center h-5">
-                            <input id="scrape-browser" name="useBrowser" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                          </div>
-                          <div class="ml-3 text-sm">
-                            <label for="scrape-browser" class="font-medium text-gray-700">Use browser</label>
-                            <p class="text-gray-500">For JavaScript-heavy websites</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button type="button" id="scrape-submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
-              Scrape Now
-            </button>
-            <button type="button" id="scrape-cancel" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- New Crawl Modal -->
     <div class="fixed z-10 inset-0 overflow-y-auto hidden" id="new-crawl-modal">
       <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -707,7 +552,7 @@
                     <div>
                       <label for="crawl-start-url" class="block text-sm font-medium text-gray-700">Start URL</label>
                       <div class="mt-1">
-                        <input type="url" name="startUrl" id="crawl-start-url" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="https://example.com" required>
+                        <input type="url" name="startUrl" id="crawl-start-url" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md bg-gray-100" placeholder="https://example.com" required>
                       </div>
                     </div>
 
@@ -715,14 +560,14 @@
                       <div>
                         <label for="crawl-max-depth" class="block text-sm font-medium text-gray-700">Max Depth</label>
                         <div class="mt-1">
-                           <input type="number" name="maxDepth" id="crawl-max-depth" min="0" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Unlimited">
+                           <input type="number" name="maxDepth" id="crawl-max-depth" min="0" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md bg-gray-100" placeholder="Unlimited">
                            <p class="mt-1 text-xs text-gray-500">0 = Start page only. Leave blank for unlimited.</p>
                         </div>
                       </div>
                        <div>
                         <label for="crawl-domain-scope" class="block text-sm font-medium text-gray-700">Domain Scope</label>
                         <div class="mt-1">
-                          <select id="crawl-domain-scope" name="domainScope" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                          <select id="crawl-domain-scope" name="domainScope" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md bg-gray-100">
                             <option value="strict" selected>Strict Hostname</option>
                             <option value="parent">Parent Domain</option>
                             <option value="subdomains">All Subdomains</option>
@@ -736,11 +581,25 @@
                     <div class="mt-4">
                       <label for="crawl-mode" class="block text-sm font-medium text-gray-700">Crawl Mode</label>
                       <div class="mt-1">
-                        <select id="crawl-mode" name="mode" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <select id="crawl-mode" name="mode" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md bg-gray-100">
                           <option value="content" selected>Content Extraction (default)</option>
                           <option value="sitemap">Sitemap Only</option>
                         </select>
                         <p class="mt-1 text-xs text-gray-500">Choose "Sitemap Only" to build a link map without saving page content.</p>
+                      </div>
+                    </div>
+
+                    <div class="mt-4">
+                      <label for="crawl-browser-type" class="block text-sm font-medium text-gray-700">Browser Type</label>
+                      <div class="mt-1 flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                          <input type="radio" id="crawl-browser-type-desktop" name="crawlBrowserType" value="desktop" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" checked>
+                          <span class="ml-2">PC/Desktop</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                          <input type="radio" id="crawl-browser-type-mobile" name="crawlBrowserType" value="mobile" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                          <span class="ml-2">Cell Phone</span>
+                        </label>
                       </div>
                     </div>
 
@@ -776,9 +635,8 @@
       </div>
     </div>
 
+    <script type="module" src="js/app.js"></script>
   </div>
 
-  <!-- Load the application using ES modules -->
-  <script type="module" src="js/app.js"></script>
 </body>
 </html>

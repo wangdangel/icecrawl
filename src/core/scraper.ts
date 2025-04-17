@@ -1,5 +1,4 @@
 import * as cheerio from 'cheerio';
-// Remove local PrismaClient import
 import prisma from '../db/prismaClient'; // Import shared instance
 import logger from '../utils/logger';
 import { CacheService } from '../services/cacheService';
@@ -9,8 +8,6 @@ import { httpClient, createHttpClient } from '../utils/httpClient';
 import { BrowserService } from '../services/browserService'; // Import BrowserService
 import { PerformanceMonitor } from '../utils/performance';
 import crypto from 'crypto';
-
-// Remove local prisma instantiation
 
 /**
  * Represents the structure of scraped data
@@ -48,7 +45,8 @@ export async function scrapeUrl(
     cacheTtl?: number;
     timeout?: number;
     retries?: number;
-    useBrowser?: boolean; // Add useBrowser option
+    useBrowser?: boolean;
+    browserType?: 'desktop' | 'mobile'; // Add browserType option
   } = {},
   userId: string | null = null // Add userId parameter
 ): Promise<ScrapedData> {
@@ -60,6 +58,7 @@ export async function scrapeUrl(
       timeout = 10000, // Default timeout for HTTP client
       retries = 3,
       useBrowser = false, // Default to false
+      browserType, // Add browserType to destructuring
     } = options;
     
     // Generate cache key
@@ -85,7 +84,10 @@ export async function scrapeUrl(
           // Use BrowserService for JS-heavy sites
           html = await PerformanceMonitor.measure(
             'scrape_browser_fetch',
-            () => BrowserService.scrapeWithBrowser(url, { /* Add browser-specific options if needed */ }),
+            () => BrowserService.scrapeWithBrowser(url, {
+              ...(browserType ? { browserType } : {}),
+              // Add any other browser-specific options here
+            }),
             { url }
           );
         } else {

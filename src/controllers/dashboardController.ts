@@ -445,6 +445,33 @@ export class DashboardController {
     }
   }
 
+  /**
+   * Get recent jobs (scrape, crawl, forum) for the authenticated user.
+   */
+  static async getRecentJobs(req: Request, res: Response): Promise<Response> {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
+      const userId = req.user!.id;
+      // Call service to get unified recent jobs
+      const jobs = await DashboardService.getRecentJobs(userId, limit);
+      return res.json({
+        status: 'success',
+        data: { jobs },
+      });
+    } catch (error) {
+      logger.error({
+        message: 'Error getting recent jobs in controller',
+        userId: req.user?.id,
+        query: req.query,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return res.status(500).json({
+        status: 'error',
+        message: 'An error occurred while getting recent jobs',
+      });
+    }
+  }
+
   // TODO: Add methods for managing tags, categories, etc. if needed
 
   static async deleteScrape(req: Request, res: Response): Promise<Response> {

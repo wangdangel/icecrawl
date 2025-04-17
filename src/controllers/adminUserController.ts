@@ -3,6 +3,8 @@ import { z } from 'zod';
 // Import UserService instead of EnhancedUserService
 import { UserService } from '../services/userService';
 import logger from '../utils/logger';
+import prisma from '../db/prismaClient'; // Import shared instance
+import type { Prisma, User } from '@prisma/client';
 
 // Validation schema for updating users (admin)
 const updateUserSchema = z.object({
