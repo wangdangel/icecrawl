@@ -51,6 +51,18 @@ icecrawl --help
 icecrawl-mcp
 ```
 
+### Configuration
+
+By default, Icecrawl uses a SQLite database file at `prisma/dev.db`. You can override this location by editing the `DATABASE_URL` setting in your `.env` file:
+```env
+DATABASE_URL=file:./prisma/dev.db
+```
+
+For PowerShell sessions:
+```powershell
+$Env:DATABASE_URL = "file:./prisma/dev.db"
+```
+
 ### From Source (Development)
 
 ```bash
