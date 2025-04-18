@@ -47,13 +47,13 @@ function createTransporter() {
           pass: SMTP_PASS,
         },
       });
-    
+
     case 'ses':
       // AWS SES transporter
       return {
         async sendMail(mailOptions: any) {
           const client = new SESClient({ region: AWS_REGION });
-          
+
           const params = {
             Source: mailOptions.from,
             Destination: {
@@ -75,16 +75,16 @@ function createTransporter() {
               },
             },
           };
-          
+
           const command = new SendEmailCommand(params);
           await client.send(command);
-          
+
           return {
             messageId: `ses-${Date.now()}`,
           };
         },
       };
-    
+
     case 'console':
     default:
       // Console transporter (for development)
@@ -99,7 +99,7 @@ function createTransporter() {
           console.log('------------------------------------------');
           console.log(mailOptions.text);
           console.log('==========================================');
-          
+
           return {
             messageId: `console-${Date.now()}`,
           };
@@ -110,14 +110,14 @@ function createTransporter() {
 
 /**
  * Send an email
- * 
+ *
  * @param config - Email configuration
  * @returns Promise resolving to the message ID
  */
 export async function sendEmail(config: EmailConfig): Promise<string> {
   try {
     const transporter = createTransporter();
-    
+
     const mailOptions = {
       from: config.from || EMAIL_FROM,
       to: config.to,
@@ -126,16 +126,16 @@ export async function sendEmail(config: EmailConfig): Promise<string> {
       html: config.html,
       attachments: config.attachments,
     };
-    
+
     const info = await transporter.sendMail(mailOptions);
-    
+
     logger.info({
       message: 'Email sent',
       to: config.to,
       subject: config.subject,
       messageId: info.messageId,
     });
-    
+
     return info.messageId;
   } catch (error) {
     logger.error({
@@ -144,7 +144,7 @@ export async function sendEmail(config: EmailConfig): Promise<string> {
       subject: config.subject,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     throw new Error('Failed to send email');
   }
 }

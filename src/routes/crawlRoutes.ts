@@ -9,15 +9,19 @@ const router = Router();
 
 // Validation schema for starting a crawl job
 const startCrawlSchema = z.object({
-  startUrl: z.string().url({ message: "Invalid starting URL" }),
+  startUrl: z.string().url({ message: 'Invalid starting URL' }),
   maxDepth: z.number().int().min(0).nullable().optional(), // 0 = start page only, null/undefined = unlimited
-  domainScope: z.enum(["strict", "parent", "subdomains", "parent_subdomains", "none"]).optional().default("strict"),
+  domainScope: z
+    .enum(['strict', 'parent', 'subdomains', 'parent_subdomains', 'none'])
+    .optional()
+    .default('strict'),
   useBrowser: z.boolean().optional().default(false),
+  useCookies: z.boolean().optional().default(false),
   // Add other options if needed (e.g., specific cache/timeout/retry for the crawl)
   useCache: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
   mode: z.enum(['content', 'sitemap']).optional().default('content'), // New: crawl mode
-  browserType: z.enum(["desktop", "mobile"]).optional().default("desktop"), // Add browserType
+  browserType: z.enum(['desktop', 'mobile']).optional().default('desktop'), // Add browserType
 });
 
 // Helper to call MCP tool get_crawl_job_result
@@ -33,7 +37,7 @@ async function callGetCrawlJobResult(jobId: string): Promise<any | null> {
 
 // Validation schema for getting crawl results
 const getCrawlResultSchema = z.object({
-  format: z.enum(["json", "markdown", "both"]).optional().default("json"),
+  format: z.enum(['json', 'markdown', 'both']).optional().default('json'),
 });
 
 /**
@@ -72,6 +76,10 @@ const getCrawlResultSchema = z.object({
  *                 type: boolean
  *                 default: false
  *                 description: Whether to use a headless browser for scraping (handles JavaScript).
+ *               useCookies:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether to use cookies for the crawl.
  *               useCache:
  *                 type: boolean
  *                 description: Override default cache behavior for pages in this crawl.
@@ -139,7 +147,12 @@ router.post('/', authenticate, async (req: Request, res: Response, next: NextFun
       },
     });
 
-    logger.info({ message: 'Crawl job created', jobId: newJob.id, userId: req.user.id, startUrl: startUrl });
+    logger.info({
+      message: 'Crawl job created',
+      jobId: newJob.id,
+      userId: req.user.id,
+      startUrl: startUrl,
+    });
 
     return res.status(201).json({
       status: 'success',
@@ -148,13 +161,12 @@ router.post('/', authenticate, async (req: Request, res: Response, next: NextFun
         jobId: newJob.id,
       },
     });
-
   } catch (error) {
     logger.error({
       message: 'Error creating crawl job',
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: req.user?.id,
-      startUrl: req.body?.startUrl
+      startUrl: req.body?.startUrl,
     });
     next(error);
   }
@@ -239,7 +251,7 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
 
     // Validate query params
     const parsedQuery = getCrawlResultSchema.safeParse(req.query);
-     if (!parsedQuery.success) {
+    if (!parsedQuery.success) {
       return res.status(400).json({
         status: 'error',
         message: 'Invalid query parameters',
@@ -247,7 +259,6 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
       });
     }
     const { format } = parsedQuery.data;
-
 
     // Fetch the crawl job
     const job = await prisma.crawlJob.findUnique({
@@ -263,8 +274,8 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
         failedUrls: true,
         options: true,
         sitemap: true,
-        userId: true
-      }
+        userId: true,
+      },
     });
 
     if (!job) {
@@ -273,7 +284,9 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
 
     // Optional: Check ownership (if jobs are user-specific)
     if (job.userId && job.userId !== userId) {
-      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
+      return res
+        .status(403)
+        .json({ status: 'error', message: 'Forbidden: You do not own this job' });
     }
 
     // Parse failed URLs
@@ -283,7 +296,11 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
         failedUrlsList = JSON.parse(job.failedUrls);
       }
     } catch (e) {
-      logger.warn({ message: 'Failed to parse failedUrls for job result', jobId: job.id, error: e });
+      logger.warn({
+        message: 'Failed to parse failedUrls for job result',
+        jobId: job.id,
+        error: e,
+      });
     }
 
     // Call MCP tool to get full crawl result (may include markdownData)
@@ -323,13 +340,12 @@ router.get('/:jobId', authenticate, async (req: Request, res: Response, next: Ne
         mcpResult, // include full MCP crawl result (markdownData, etc.)
       },
     });
-
   } catch (error) {
-     logger.error({
+    logger.error({
       message: 'Error getting crawl job status/results',
       jobId: req.params.jobId,
       error: error instanceof Error ? error.message : 'Unknown error',
-      userId: req.user?.id
+      userId: req.user?.id,
     });
     next(error);
   }
@@ -348,7 +364,9 @@ router.post('/:jobId/cancel', authenticate, async (req, res, next) => {
       return res.status(404).json({ status: 'error', message: 'Crawl job not found' });
     }
     if (job.userId && job.userId !== userId) {
-      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
+      return res
+        .status(403)
+        .json({ status: 'error', message: 'Forbidden: You do not own this job' });
     }
     if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
       return res.status(400).json({ status: 'error', message: 'Job is already finished.' });
@@ -379,7 +397,9 @@ router.delete('/:jobId', authenticate, async (req, res, next) => {
     }
 
     if (job.userId && job.userId !== userId) {
-      return res.status(403).json({ status: 'error', message: 'Forbidden: You do not own this job' });
+      return res
+        .status(403)
+        .json({ status: 'error', message: 'Forbidden: You do not own this job' });
     }
 
     // Delete associated scraped pages

@@ -2,7 +2,7 @@ import rateLimit from 'express-rate-limit';
 
 /**
  * Creates a rate limiter middleware
- * 
+ *
  * @param windowMs - Time window in milliseconds
  * @param max - Maximum number of requests per window
  * @returns Rate limiter middleware

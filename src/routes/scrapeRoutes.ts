@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 // Remove local PrismaClient import and import shared instance
-import prisma from '../db/prismaClient'; 
+import prisma from '../db/prismaClient';
 import { scrapeUrl } from '../core/scraper'; // Keep for potential direct scraping later? Or remove if only jobs are used.
 import { scrapingRateLimiter } from '../middleware/rateLimiter';
 import logger from '../utils/logger'; // Import logger
@@ -20,7 +20,8 @@ const scrapeJobSchema = z.object({
   category: z.string().optional(),
   notes: z.string().optional(),
   useBrowser: z.boolean().optional().default(false), // Add useBrowser
-  browserType: z.enum(["desktop", "mobile"]).optional().default("desktop"), // Add browserType
+  useCookies: z.boolean().optional().default(false), // Add useCookies
+  browserType: z.enum(['desktop', 'mobile']).optional().default('desktop'), // Add browserType
   // Add other potential job options here if needed
 });
 
@@ -85,10 +86,10 @@ router.get('/', scrapingRateLimiter, async (req: Request, res: Response, next: N
         details: parsedInput.error.format(),
       });
     }
-    
+
     // Perform scraping
     const scrapedData = await scrapeUrl(parsedInput.data.url);
-    
+
     return res.status(200).json({
       status: 'success',
       data: scrapedData,
@@ -149,7 +150,7 @@ router.post('/', scrapingRateLimiter, async (req: Request, res: Response, next: 
       return res.status(401).json({ status: 'error', message: 'User not authenticated' });
     }
 
-    const { url, category, notes, useBrowser, browserType } = parsedInput.data;
+    const { url, category, notes, useBrowser, browserType, useCookies } = parsedInput.data;
 
     // Create a ScrapeJob record in the database
     const newJob = await prisma.scrapeJob.create({
@@ -158,33 +159,34 @@ router.post('/', scrapingRateLimiter, async (req: Request, res: Response, next: 
         userId: req.user.id, // Associate job with the logged-in user
         status: 'pending', // Initial status
         // Store options as a JSON string
-        options: JSON.stringify({ 
+        options: JSON.stringify({
           category: category,
           notes: notes,
-          useBrowser: useBrowser, 
+          useBrowser: useBrowser,
+          useCookies: useCookies,
           browserType: browserType,
-        }), 
+        }),
       },
     });
 
     logger.info({ message: 'Scrape job created', jobId: newJob.id, userId: req.user.id, url: url });
 
     // Return success response indicating job submission
-    return res.status(201).json({ // Use 201 Created status
+    return res.status(201).json({
+      // Use 201 Created status
       status: 'success',
       message: 'Scrape job submitted successfully',
       data: {
         jobId: newJob.id,
       },
     });
-
   } catch (error) {
-     logger.error({ 
-       message: 'Error creating scrape job', 
-       error: error instanceof Error ? error.message : 'Unknown error',
-       userId: req.user?.id, 
-       url: req.body?.url 
-     });
+    logger.error({
+      message: 'Error creating scrape job',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      url: req.body?.url,
+    });
     next(error); // Pass error to the global error handler
   }
 });

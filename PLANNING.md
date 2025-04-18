@@ -7,41 +7,46 @@ This document outlines the planning for the Web Scraper Dual-Interface project.
 Icecrawl is a versatile web scraping application designed to function via three distinct interfaces:
 
 1.  **HTTP API Server**
-    -   Runs on port 6971 (default, configurable via PORT env var).
-    -   Provides scraping and job management via RESTful endpoints.
-    -   Includes a web dashboard for UI interaction.
-    -   Intended for web-based integration and user interaction.
-    -   Uses API key and/or session-based authentication.
+
+    - Runs on port 6971 (default, configurable via PORT env var).
+    - Provides scraping and job management via RESTful endpoints.
+    - Includes a web dashboard for UI interaction.
+    - Intended for web-based integration and user interaction.
+    - Uses API key and/or session-based authentication.
 
 2.  **Command-Line Interface (CLI) Tool**
-    -   Accessible via `npx icecrawl`.
-    -   Uses standard input/output (stdin/stdout) for data exchange.
-    -   Provides direct access to scraping functionality from the terminal.
-    -   Supports piping and redirection.
+
+    - Accessible via `npx icecrawl`.
+    - Uses standard input/output (stdin/stdout) for data exchange.
+    - Provides direct access to scraping functionality from the terminal.
+    - Supports piping and redirection.
 
 3.  **Model Context Protocol (MCP) Server**
-    -   Accessible via `npx icecrawl-mcp`.
-    -   Communicates over standard input/output using the MCP specification.
-    -   Exposes core scraping and crawling functionality as MCP tools.
-    -   Intended for programmatic integration with MCP clients (e.g., AI assistants).
-    -   Does not implement separate authentication (relies on execution context).
+    - Accessible via `npx icecrawl-mcp`.
+    - Communicates over standard input/output using the MCP specification.
+    - Exposes core scraping and crawling functionality as MCP tools.
+    - Intended for programmatic integration with MCP clients (e.g., AI assistants).
+    - Does not implement separate authentication (relies on execution context).
 
 ## Architecture
 
 ### Core Components
 
 1. **Scraping Engine**
+
    - Shared between both interfaces
    - Responsible for fetching and parsing web content
    - Extracts relevant information based on configurable rules
    - Handles error scenarios and retries
 
 2. **Storage Layer**
+
    - Prisma ORM for database interactions
    - Stores scraped data for future reference
    - Supports caching to minimize redundant scraping
 
 3. **API Layer**
+
    - Express.js based HTTP server
    - Implements RESTful endpoints
    - Handles validation, error handling, and responses
@@ -54,30 +59,35 @@ Icecrawl is a versatile web scraping application designed to function via three 
 ## Implementation Plan
 
 ### Phase 1: Foundation ✓
+
 - [x] Set up project structure
 - [x] Configure build tools and linting
 - [x] Implement basic scraping functionality
 - [x] Create database schema
 
 ### Phase 2: API Implementation ✓
+
 - [x] Develop Express server
 - [x] Implement API endpoints
 - [x] Add validation and error handling
 - [x] Document API usage
 
 ### Phase 3: CLI Implementation ✓
+
 - [x] Create CLI entry point
 - [x] Implement stdin/stdout handling
 - [x] Add command-line options
 - [x] Document CLI usage
 
 ### Phase 4: Enhancement ✓
+
 - [x] Implement caching mechanism
 - [x] Add advanced scraping features
 - [x] Optimize performance
 - [x] Improve error handling and reporting
 
 ### Phase 5: Documentation and Testing ✓
+
 - [x] Write comprehensive tests
 - [x] Complete documentation
 - [x] Create usage examples

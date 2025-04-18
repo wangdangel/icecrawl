@@ -7,7 +7,7 @@
  * Chart instances cache
  */
 const charts = {
-  activityChart: null
+  activityChart: null,
 };
 
 /**
@@ -19,52 +19,54 @@ function createActivityChart(data) {
   if (charts.activityChart) {
     charts.activityChart.destroy();
   }
-  
+
   const ctx = document.getElementById('scraping-activity-chart')?.getContext('2d');
   if (!ctx) {
     console.error('Activity chart canvas not found');
     return;
   }
-  
+
   const labels = data.map(item => moment(item.date).format('MMM D'));
   const values = data.map(item => item.count);
-  
+
   charts.activityChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Scrapes',
-        data: values,
-        backgroundColor: 'rgba(79, 70, 229, 0.2)',
-        borderColor: 'rgba(79, 70, 229, 1)',
-        borderWidth: 2,
-        tension: 0.3,
-        fill: true,
-      }]
+      datasets: [
+        {
+          label: 'Scrapes',
+          data: values,
+          backgroundColor: 'rgba(79, 70, 229, 0.2)',
+          borderColor: 'rgba(79, 70, 229, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: { 
-        y: { 
-          beginAtZero: true, 
-          precision: 0 
-        } 
+      scales: {
+        y: {
+          beginAtZero: true,
+          precision: 0,
+        },
       },
       plugins: {
-        legend: { 
-          display: false 
+        legend: {
+          display: false,
         },
-        tooltip: { 
-          callbacks: { 
-            label: context => `${context.parsed.y} scrapes` 
-          } 
-        }
-      }
-    }
+        tooltip: {
+          callbacks: {
+            label: context => `${context.parsed.y} scrapes`,
+          },
+        },
+      },
+    },
   });
-  
+
   return charts.activityChart;
 }
 
@@ -100,9 +102,4 @@ function destroyAllCharts() {
   });
 }
 
-export {
-  createActivityChart,
-  getChart,
-  destroyChart,
-  destroyAllCharts
-};
+export { createActivityChart, getChart, destroyChart, destroyAllCharts };

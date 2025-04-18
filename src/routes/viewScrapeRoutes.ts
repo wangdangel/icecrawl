@@ -28,21 +28,22 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     // Basic HTML rendering (can be improved with a template engine later)
     let metadataHtml = '<h3>Metadata</h3><pre>No metadata</pre>';
     if (scrapedPage.metadata) {
-        try {
-            const metaObj = JSON.parse(scrapedPage.metadata);
-            metadataHtml = `<h3>Metadata</h3><pre>${JSON.stringify(metaObj, null, 2)}</pre>`;
-        } catch (e) {
-            metadataHtml = `<h3>Metadata (Raw)</h3><pre>${scrapedPage.metadata}</pre>`;
-        }
+      try {
+        const metaObj = JSON.parse(scrapedPage.metadata);
+        metadataHtml = `<h3>Metadata</h3><pre>${JSON.stringify(metaObj, null, 2)}</pre>`;
+      } catch (e) {
+        metadataHtml = `<h3>Metadata (Raw)</h3><pre>${scrapedPage.metadata}</pre>`;
+      }
     }
-    
+
     let tagsHtml = '<h3>Tags</h3><p>No tags</p>';
     if (scrapedPage.tags && scrapedPage.tags.length > 0) {
-        tagsHtml = '<h3>Tags</h3><ul>';
-        scrapedPage.tags.forEach((tag: any) => { // Use 'any' type
-            tagsHtml += `<li>${tag.name}</li>`;
-        });
-        tagsHtml += '</ul>';
+      tagsHtml = '<h3>Tags</h3><ul>';
+      scrapedPage.tags.forEach((tag: any) => {
+        // Use 'any' type
+        tagsHtml += `<li>${tag.name}</li>`;
+      });
+      tagsHtml += '</ul>';
     }
 
     res.send(`
@@ -94,7 +95,6 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       </body>
       </html>
     `);
-
   } catch (error) {
     logger.error({ message: `Error fetching scraped page ${id}`, error });
     next(error); // Pass to global error handler

@@ -12,7 +12,7 @@ class TransformerController {
     this.elements = {};
     this.initialized = false;
   }
-  
+
   /**
    * Initialize transformers controller
    */
@@ -21,19 +21,19 @@ class TransformerController {
       this.cacheElements();
       this.initialized = true;
     }
-    
+
     await this.loadTransformers();
   }
-  
+
   /**
    * Cache DOM elements
    */
   cacheElements() {
     this.elements = {
-      transformersList: document.getElementById('transformers-list')
+      transformersList: document.getElementById('transformers-list'),
     };
   }
-  
+
   /**
    * Load available transformers
    */
@@ -43,7 +43,7 @@ class TransformerController {
       this.renderTransformers();
     } catch (error) {
       console.error('Error loading transformers:', error);
-      
+
       // Special handling for 404 (API not implemented yet)
       if (error.message.includes('404') && this.elements.transformersList) {
         this.elements.transformersList.innerHTML = `
@@ -60,7 +60,7 @@ class TransformerController {
               </div>
             </div>
           </div>`;
-        
+
         // Show default transformers instead
         this.renderDefaultTransformers();
       } else if (this.elements.transformersList) {
@@ -81,7 +81,7 @@ class TransformerController {
       }
     }
   }
-  
+
   /**
    * Render transformers list
    */
@@ -90,14 +90,15 @@ class TransformerController {
       console.error('Transformers list element not found');
       return;
     }
-    
+
     this.elements.transformersList.innerHTML = '';
-    
+
     if (this.transformers.length === 0) {
-      this.elements.transformersList.innerHTML = '<p class="text-gray-500">No transformers available</p>';
+      this.elements.transformersList.innerHTML =
+        '<p class="text-gray-500">No transformers available</p>';
       return;
     }
-    
+
     this.transformers.forEach(transformer => {
       this.elements.transformersList.innerHTML += `
         <div class="bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -117,13 +118,13 @@ class TransformerController {
           </div>
         </div>`;
     });
-    
+
     // Add event listeners to transformer buttons
     this.elements.transformersList.querySelectorAll('[data-transformer]').forEach(button => {
       button.addEventListener('click', e => this.handleTransformerApply(e));
     });
   }
-  
+
   /**
    * Render default transformers when API is not available
    */
@@ -131,35 +132,35 @@ class TransformerController {
     if (!this.elements.transformersList) {
       return;
     }
-    
+
     const defaultTransformers = [
       {
         name: 'Language Detector',
         description: 'Detects the language of the text content',
-        icon: 'fa-language'
+        icon: 'fa-language',
       },
       {
         name: 'Text Summarizer',
         description: 'Creates a summary of the text content',
-        icon: 'fa-edit'
+        icon: 'fa-edit',
       },
       {
         name: 'Keyword Extractor',
         description: 'Extracts keywords from the text content',
-        icon: 'fa-key'
+        icon: 'fa-key',
       },
       {
         name: 'Sentiment Analyzer',
         description: 'Analyzes the sentiment of the text content',
-        icon: 'fa-smile'
+        icon: 'fa-smile',
       },
       {
         name: 'Entity Recognizer',
         description: 'Identifies entities (people, places, organizations) in the text',
-        icon: 'fa-tag'
-      }
+        icon: 'fa-tag',
+      },
     ];
-    
+
     defaultTransformers.forEach(transformer => {
       this.elements.transformersList.innerHTML += `
         <div class="bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -179,13 +180,13 @@ class TransformerController {
           </div>
         </div>`;
     });
-    
+
     // Add event listeners to transformer buttons
     this.elements.transformersList.querySelectorAll('[data-transformer]').forEach(button => {
       button.addEventListener('click', e => this.handleTransformerApply(e));
     });
   }
-  
+
   /**
    * Handle transformer apply button click
    * @param {Event} e - Click event
@@ -216,14 +217,17 @@ class TransformerController {
         return;
       }
 
-      const response = await fetch(`/api/transform/transformers/${encodeURIComponent(transformer)}/apply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `/api/transform/transformers/${encodeURIComponent(transformer)}/apply`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ content }),
         },
-        body: JSON.stringify({ content }),
-      });
+      );
 
       if (!response.ok) {
         const errorText = await response.text();

@@ -1,5 +1,12 @@
 import express from 'express';
-import { getForumJobs, getForumPosts, exportForumPosts, createForumDatabase, createForumJob, deleteForumJob } from '../controllers/forumController';
+import {
+  getForumJobs,
+  getForumPosts,
+  exportForumPosts,
+  createForumDatabase,
+  createForumJob,
+  deleteForumJob,
+} from '../controllers/forumController';
 import { authenticate } from '../middleware/authMiddleware';
 
 const router = express.Router();

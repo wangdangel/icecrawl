@@ -8,7 +8,11 @@ import { exec } from 'child_process';
  * @param args Arguments object
  * @returns The parsed JSON result from the MCP tool
  */
-export async function useMcpTool(serverName: string, toolName: string, args: Record<string, any>): Promise<any> {
+export async function useMcpTool(
+  serverName: string,
+  toolName: string,
+  args: Record<string, any>,
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const input = JSON.stringify({
       server_name: serverName,

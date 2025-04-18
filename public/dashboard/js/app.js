@@ -16,7 +16,7 @@ import { setupModals } from './components/modals.js';
  */
 const App = {
   controllers: {},
-  
+
   /**
    * Initialize the application
    */
@@ -25,26 +25,26 @@ const App = {
     if (!AuthService.checkAuth()) {
       return; // Auth service will redirect if needed
     }
-    
+
     // Setup controllers
     this.controllers = {
       dashboard: new DashboardController(),
       jobs: new JobsController(),
       crawlJobs: new CrawlController(),
-      transformers: new TransformerController()
+      transformers: new TransformerController(),
     };
-    
+
     // Initialize navigation
     Navigation.init(this.controllers);
-    
+
     // Initialize modals
     setupModals(this.controllers);
-    
+
     // Set initial page
     Navigation.navigateTo('dashboard');
-    
+
     console.log('Dashboard application initialized');
-  }
+  },
 };
 
 /**
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const profileLink = document.getElementById('user-menu-profile');
   if (profileLink) {
-    profileLink.addEventListener('click', (e) => {
+    profileLink.addEventListener('click', e => {
       e.preventDefault();
       // Profile logic
     });
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const settingsLink = document.getElementById('user-menu-settings');
   if (settingsLink) {
-    settingsLink.addEventListener('click', (e) => {
+    settingsLink.addEventListener('click', e => {
       e.preventDefault();
       window.location.href = 'settings.html';
     });

@@ -82,7 +82,13 @@ export async function exportForumPosts(req: Request, res: Response) {
       const csvRows = [
         'id,title,content,url,meta',
         ...posts.map(p =>
-          [p.id, JSON.stringify(p.title), JSON.stringify(p.content), JSON.stringify(p.url), JSON.stringify(p.meta)].join(',')
+          [
+            p.id,
+            JSON.stringify(p.title),
+            JSON.stringify(p.content),
+            JSON.stringify(p.url),
+            JSON.stringify(p.meta),
+          ].join(','),
         ),
       ];
       res.header('Content-Type', 'text/csv');
@@ -110,25 +116,31 @@ export async function createForumDatabase(req: Request, res: Response) {
     // Ensure parent directory exists
     fs.mkdirSync(require('path').dirname(filePath), { recursive: true });
     // Create the SQLite DB file and initialize schema
-    const db = new sqlite3.Database(filePath, (err) => {
+    const db = new sqlite3.Database(filePath, err => {
       if (err) {
         return res.status(500).json({ error: 'Failed to create database', details: String(err) });
       }
       // Create a basic forumPost table (customize as needed)
-      db.run(`CREATE TABLE IF NOT EXISTS forumPost (
+      db.run(
+        `CREATE TABLE IF NOT EXISTS forumPost (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         jobId TEXT,
         title TEXT,
         content TEXT,
         url TEXT,
         meta TEXT
-      )`, [], (tableErr) => {
-        db.close();
-        if (tableErr) {
-          return res.status(500).json({ error: 'Failed to initialize database schema', details: String(tableErr) });
-        }
-        return res.status(201).json({ message: 'Database created', filePath });
-      });
+      )`,
+        [],
+        tableErr => {
+          db.close();
+          if (tableErr) {
+            return res
+              .status(500)
+              .json({ error: 'Failed to initialize database schema', details: String(tableErr) });
+          }
+          return res.status(201).json({ message: 'Database created', filePath });
+        },
+      );
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create database', details: String(err) });
@@ -138,7 +150,18 @@ export async function createForumDatabase(req: Request, res: Response) {
 // Create a new forum job
 export async function createForumJob(req: Request, res: Response) {
   try {
-    const { title, startUrl, postSelector, nextPageSelector, nextPageText, output, filePath, maxPages } = req.body;
+    const {
+      title,
+      startUrl,
+      postSelector,
+      nextPageSelector,
+      nextPageText,
+      output,
+      filePath,
+      maxPages,
+      useCookies,
+      cookieString,
+    } = req.body;
     if (!title || !startUrl || !postSelector) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -149,11 +172,11 @@ export async function createForumJob(req: Request, res: Response) {
         where: {
           startUrl,
           options: {
-            contains: '"mode":"forum"'
+            contains: '"mode":"forum"',
           },
-          status: { notIn: ['completed', 'failed', 'cancelled'] }
+          status: { notIn: ['completed', 'failed', 'cancelled'] },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
       if (existingJob) {
         // Parse options and extract dbFile for the duplicate job
@@ -167,7 +190,9 @@ export async function createForumJob(req: Request, res: Response) {
         return res.status(200).json({ ...existingJob, dbFile });
       }
     } catch (err) {
-      return res.status(500).json({ error: 'Failed to check for duplicate forum job', details: String(err) });
+      return res
+        .status(500)
+        .json({ error: 'Failed to check for duplicate forum job', details: String(err) });
     }
     // Create new job
     const options = {
@@ -179,7 +204,9 @@ export async function createForumJob(req: Request, res: Response) {
       nextPageText,
       output,
       filePath,
-      maxPages
+      maxPages,
+      useCookies,
+      cookieString,
     };
     const job = await prisma.crawlJob.create({
       data: {

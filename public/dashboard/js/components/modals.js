@@ -15,7 +15,7 @@ const elements = {
   crawlCancelButton: null,
   crawlSubmitButton: null,
   newCrawlForm: null,
-  newCrawlButton: null
+  newCrawlButton: null,
 };
 
 /**
@@ -48,11 +48,11 @@ function bindEvents(controllers) {
   if (elements.newCrawlButton) {
     elements.newCrawlButton.addEventListener('click', showNewCrawlModal);
   }
-  
+
   if (elements.crawlCancelButton) {
     elements.crawlCancelButton.addEventListener('click', hideNewCrawlModal);
   }
-  
+
   if (elements.crawlSubmitButton) {
     elements.crawlSubmitButton.addEventListener('click', () => submitNewCrawl(controllers));
   }
@@ -90,30 +90,33 @@ async function submitNewCrawl(controllers) {
     const domainScope = document.getElementById('crawl-domain-scope').value;
     const useBrowser = document.getElementById('crawl-browser').checked;
     const mode = document.getElementById('crawl-mode')?.value || 'content';
-    const browserType = document.querySelector('input[name="crawlBrowserType"]:checked')?.value || 'desktop';
-    
+    const browserType =
+      document.querySelector('input[name="crawlBrowserType"]:checked')?.value || 'desktop';
+    const useCookies = document.getElementById('crawl-use-cookies').checked;
+
     if (!startUrl) {
       alert('Please enter a Start URL');
       return;
     }
-    
+
     let maxDepth = maxDepthInput.value ? parseInt(maxDepthInput.value, 10) : null;
     if (isNaN(maxDepth) || maxDepth < 0) {
       maxDepth = null;
     }
-    
+
     await ApiService.crawlJobs.createCrawlJob({
       startUrl,
       maxDepth,
       domainScope,
       useBrowser,
+      useCookies,
       mode,
-      browserType
+      browserType,
     });
-    
+
     hideNewCrawlModal();
     alert('Crawl job submitted successfully. Track status on the Crawl Jobs page.');
-    
+
     // Navigate to crawl jobs page
     Navigation.navigateTo('crawlJobs');
   } catch (error) {
@@ -121,8 +124,4 @@ async function submitNewCrawl(controllers) {
   }
 }
 
-export {
-  setupModals,
-  showNewCrawlModal,
-  hideNewCrawlModal
-};
+export { setupModals, showNewCrawlModal, hideNewCrawlModal };

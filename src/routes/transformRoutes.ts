@@ -59,9 +59,9 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         details: parsedInput.error.format(),
       });
     }
-    
+
     const { url, pipeline, transformer } = parsedInput.data;
-    
+
     // Must specify either pipeline or transformer
     if (!pipeline && !transformer) {
       return res.status(400).json({
@@ -69,10 +69,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         message: 'Must specify either pipeline or transformer',
       });
     }
-    
+
     // Scrape the URL
     const scrapedData = await scrapeUrl(url);
-    
+
     // Transform the data
     let transformedData;
     if (pipeline) {
@@ -80,7 +80,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     } else if (transformer) {
       transformedData = await pipelineManager.runTransformer(transformer, scrapedData);
     }
-    
+
     return res.status(200).json({
       status: 'success',
       data: transformedData,
@@ -90,14 +90,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       message: 'Transformation error',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     if (error instanceof Error && error.message.includes('not found')) {
       return res.status(400).json({
         status: 'error',
         message: error.message,
       });
     }
-    
+
     next(error);
   }
 });
@@ -144,28 +144,33 @@ router.get('/transformers', (_req: Request, res: Response) => {
  * POST /api/transform/transformers/:name/apply
  * Apply a single transformer to provided content
  */
-router.post('/transformers/:name/apply', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const transformerName = req.params.name;
-    const { content, config } = req.body;
+router.post(
+  '/transformers/:name/apply',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const transformerName = req.params.name;
+      const { content, config } = req.body;
 
-    if (typeof content !== 'string') {
-      return res.status(400).json({ status: 'error', message: 'Missing or invalid content' });
+      if (typeof content !== 'string') {
+        return res.status(400).json({ status: 'error', message: 'Missing or invalid content' });
+      }
+
+      const transformer = pipelineManager['transformers'].get(transformerName);
+      if (!transformer) {
+        return res
+          .status(404)
+          .json({ status: 'error', message: `Transformer not found: ${transformerName}` });
+      }
+
+      const input = { content }; // minimal ScrapedData
+      const result = await transformer.transform(input, config);
+
+      res.status(200).json({ status: 'success', data: result });
+    } catch (error) {
+      next(error);
     }
-
-    const transformer = pipelineManager['transformers'].get(transformerName);
-    if (!transformer) {
-      return res.status(404).json({ status: 'error', message: `Transformer not found: ${transformerName}` });
-    }
-
-    const input = { content }; // minimal ScrapedData
-    const result = await transformer.transform(input, config);
-
-    res.status(200).json({ status: 'success', data: result });
-  } catch (error) {
-    next(error);
-  }
-});
+  },
+);
 
 /**
  * POST /api/transform/pipelines/:name/run
@@ -182,7 +187,9 @@ router.post('/pipelines/:name/run', async (req: Request, res: Response, next: Ne
 
     const pipeline = pipelineManager.getPipeline(pipelineName);
     if (!pipeline) {
-      return res.status(404).json({ status: 'error', message: `Pipeline not found: ${pipelineName}` });
+      return res
+        .status(404)
+        .json({ status: 'error', message: `Pipeline not found: ${pipelineName}` });
     }
 
     // Clone pipeline and inject step configs if provided
@@ -190,8 +197,8 @@ router.post('/pipelines/:name/run', async (req: Request, res: Response, next: Ne
       ...pipeline,
       steps: pipeline.steps.map((step, idx) => ({
         ...step,
-        config: stepConfigs?.[idx] || step.config
-      }))
+        config: stepConfigs?.[idx] || step.config,
+      })),
     };
 
     const input = { content }; // minimal ScrapedData

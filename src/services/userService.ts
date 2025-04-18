@@ -38,7 +38,6 @@ export interface UserUpdateData {
 // Type for user data returned externally (without password)
 export type SafeUser = Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'>;
 
-
 export class UserService {
   /**
    * Get a user by ID (returns safe user data)
@@ -133,7 +132,7 @@ export class UserService {
   static async getAllUsers(
     page = 1,
     limit = 10,
-    filters: { username?: string; role?: string; isActive?: boolean } = {}
+    filters: { username?: string; role?: string; isActive?: boolean } = {},
   ): Promise<{ users: SafeUser[]; total: number }> {
     try {
       const skip = (page - 1) * limit;
@@ -242,15 +241,15 @@ export class UserService {
 
       // Check for unique constraint violation (e.g., username or email already exists)
       if (error instanceof Error && (error as any).code === 'P2002') {
-         // Determine which field caused the violation if possible
-         const target = (error as any).meta?.target;
-         if (target && target.includes('username')) {
-             throw new Error(`Username '${userData.username}' already exists.`);
-         } else if (target && target.includes('email')) {
-             throw new Error(`Email '${userData.email}' already registered.`);
-         } else {
-             throw new Error('User creation failed due to a conflict.');
-         }
+        // Determine which field caused the violation if possible
+        const target = (error as any).meta?.target;
+        if (target && target.includes('username')) {
+          throw new Error(`Username '${userData.username}' already exists.`);
+        } else if (target && target.includes('email')) {
+          throw new Error(`Email '${userData.email}' already registered.`);
+        } else {
+          throw new Error('User creation failed due to a conflict.');
+        }
       }
 
       throw new Error('Failed to create user');
@@ -305,17 +304,17 @@ export class UserService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
 
-       // Check for unique constraint violation on update
-       if (error instanceof Error && (error as any).code === 'P2002') {
-          const target = (error as any).meta?.target;
-          if (target && target.includes('username')) {
-              throw new Error(`Username '${userData.username}' already exists.`);
-          } else if (target && target.includes('email')) {
-              throw new Error(`Email '${userData.email}' already registered.`);
-          } else {
-              throw new Error('User update failed due to a conflict.');
-          }
-       }
+      // Check for unique constraint violation on update
+      if (error instanceof Error && (error as any).code === 'P2002') {
+        const target = (error as any).meta?.target;
+        if (target && target.includes('username')) {
+          throw new Error(`Username '${userData.username}' already exists.`);
+        } else if (target && target.includes('email')) {
+          throw new Error(`Email '${userData.email}' already registered.`);
+        } else {
+          throw new Error('User update failed due to a conflict.');
+        }
+      }
 
       throw new Error('Failed to update user');
     }
@@ -377,23 +376,23 @@ export class UserService {
         userId: id,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-       // Check for record not found error
-       if (error instanceof Error && (error as any).code === 'P2025') {
-           logger.warn(`Attempted to permanently delete non-existent user: ${id}`);
-           return false; // Indicate failure as user didn't exist
-       }
+      // Check for record not found error
+      if (error instanceof Error && (error as any).code === 'P2025') {
+        logger.warn(`Attempted to permanently delete non-existent user: ${id}`);
+        return false; // Indicate failure as user didn't exist
+      }
       return false;
     }
   }
 
-   /**
+  /**
    * Update the last login time for a user.
    * Should be called internally after successful authentication.
    *
    * @param userId - The ID of the user who logged in.
    * @returns Promise<void>
    */
-   static async updateLastLogin(userId: string): Promise<void> {
+  static async updateLastLogin(userId: string): Promise<void> {
     try {
       await prisma.user.update({
         where: { id: userId },

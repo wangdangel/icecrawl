@@ -1,7 +1,7 @@
 // Extracted and enhanced forum job modal logic from dashboard index.html
 // This script should be loaded ONLY on forum.html
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Modal elements
   var forumBtn = document.getElementById('new-forum-job-btn');
   var forumModal = document.getElementById('forum-job-modal');
@@ -14,7 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var dbCreateBtn = document.getElementById('forum-db-create-btn');
   var startUrlInput = document.getElementById('forum-start-url');
   var maxPagesInput = document.getElementById('forum-max-pages');
-  
+  const useCookiesCheckbox = document.getElementById('forum-use-cookies');
+  const cookieStringLabel = document.getElementById('forum-cookie-string-label');
+
   // Helper to extract domain from input
   function extractDomain(url) {
     url = url.trim();
@@ -24,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return domain.replace(/\.$/, '');
   }
   // Get username from environment (server-side injection or fallback)
-  var username = (window.osUser || 'USERNAME');
+  var username = window.osUser || 'USERNAME';
   try {
     username = window.localStorage.getItem('icecrawl_username') || username;
   } catch (e) {}
@@ -46,90 +48,103 @@ document.addEventListener('DOMContentLoaded', function() {
     dbPathInput.value = getDefaultDbPath(domain);
   }
   if (startUrlInput) {
-    startUrlInput.addEventListener('input', function() {
+    startUrlInput.addEventListener('input', function () {
       updateDbPath();
     });
   }
   if (forumBtn && forumModal) {
-    forumBtn.addEventListener('click', function(e) {
+    forumBtn.addEventListener('click', function (e) {
       e.preventDefault();
       forumModal.style.display = 'block';
       updateDbPath();
     });
   }
   if (forumCancel && forumModal) {
-    forumCancel.addEventListener('click', function() {
+    forumCancel.addEventListener('click', function () {
       forumModal.style.display = 'none';
     });
   }
   if (forumClose && forumModal) {
-    forumClose.addEventListener('click', function() {
+    forumClose.addEventListener('click', function () {
       forumModal.style.display = 'none';
     });
   }
   if (dbType && dbPathLabel) {
-    dbType.addEventListener('change', function() {
+    dbType.addEventListener('change', function () {
       dbPathLabel.style.display = dbType.value === 'sqlite' ? '' : 'none';
       updateDbPath();
     });
   }
+  if (useCookiesCheckbox) {
+    useCookiesCheckbox.addEventListener('change', function() {
+      if (useCookiesCheckbox.checked) {
+        cookieStringLabel.style.display = '';
+      } else {
+        cookieStringLabel.style.display = 'none';
+      }
+    });
+  }
   // --- Auto-create SQLite DB if needed on form submit ---
   if (forumForm) {
-    forumForm.addEventListener('submit', async function(event) {
-      // Always add maxPages before any submit
-      if (maxPagesInput && maxPagesInput.value) {
-        var maxPages = parseInt(maxPagesInput.value, 10);
-        if (!isNaN(maxPages) && maxPages > 0) {
-          var maxPagesField = document.createElement('input');
-          maxPagesField.type = 'hidden';
-          maxPagesField.name = 'maxPages';
-          maxPagesField.value = maxPages;
-          forumForm.appendChild(maxPagesField);
+    forumForm.addEventListener(
+      'submit',
+      async function (event) {
+        // Always add maxPages before any submit
+        if (maxPagesInput && maxPagesInput.value) {
+          var maxPages = parseInt(maxPagesInput.value, 10);
+          if (!isNaN(maxPages) && maxPages > 0) {
+            var maxPagesField = document.createElement('input');
+            maxPagesField.type = 'hidden';
+            maxPagesField.name = 'maxPages';
+            maxPagesField.value = maxPages;
+            forumForm.appendChild(maxPagesField);
+          }
         }
-      }
 
-      if (dbType && dbType.value === 'sqlite') {
-        event.preventDefault(); // We'll submit after DB check
-        var domain = extractDomain(startUrlInput.value);
-        var filePath = getDefaultDbPath(domain);
-        dbPathInput.value = filePath;
-        // Check if DB already exists for this domain
-        try {
-          const checkResp = await fetch('/api/forum/check-forum-db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filePath })
-          });
-          const checkResult = await checkResp.json();
-          if (!checkResult.exists) {
-            // Create DB if not exists
-            const createResp = await fetch('/api/forum/create-forum-db', {
+        if (dbType && dbType.value === 'sqlite') {
+          event.preventDefault(); // We'll submit after DB check
+          var domain = extractDomain(startUrlInput.value);
+          var filePath = getDefaultDbPath(domain);
+          dbPathInput.value = filePath;
+          // Check if DB already exists for this domain
+          try {
+            const checkResp = await fetch('/api/forum/check-forum-db', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ filePath })
+              body: JSON.stringify({ filePath }),
             });
-            const createResult = await createResp.json();
-            if (!createResp.ok) {
-              alert(createResult.error || 'Failed to create database.');
-              return;
+            const checkResult = await checkResp.json();
+            if (!checkResult.exists) {
+              // Create DB if not exists
+              const createResp = await fetch('/api/forum/create-forum-db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath }),
+              });
+              const createResult = await createResp.json();
+              if (!createResp.ok) {
+                alert(createResult.error || 'Failed to create database.');
+                return;
+              }
             }
+          } catch (err) {
+            alert('Database check/create error: ' + err);
+            return;
           }
-        } catch (err) {
-          alert('Database check/create error: ' + err);
+          // Now submit the form for job creation (maxPages is already appended)
+          forumForm.submit();
           return;
         }
-        // Now submit the form for job creation (maxPages is already appended)
-        forumForm.submit();
-        return;
-      }
-    }, true); // Use capture to run before any other submit handler
+      },
+      true,
+    ); // Use capture to run before any other submit handler
   }
   // --- Remove manual DB create button logic ---
   if (dbCreateBtn && dbPathInput) {
     dbCreateBtn.style.display = 'none';
   }
   // Close modal on outside click
-  window.addEventListener('click', function(event) {
+  window.addEventListener('click', function (event) {
     if (event.target === forumModal) {
       forumModal.style.display = 'none';
     }

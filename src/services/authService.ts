@@ -33,7 +33,7 @@ export class AuthService {
         role: user.role,
       },
       JWT_SECRET,
-      { expiresIn: '24h' } // Consider making expiry configurable
+      { expiresIn: '24h' }, // Consider making expiry configurable
     );
   }
 
@@ -49,7 +49,10 @@ export class AuthService {
       // Get user (including password hash) using the internal method
       const user = await UserService.getUserByUsernameInternal(username);
       if (!user || !user.password || !user.isActive) {
-        logger.warn({ message: 'Credential verification failed: User not found or inactive', username });
+        logger.warn({
+          message: 'Credential verification failed: User not found or inactive',
+          username,
+        });
         return null;
       }
 
@@ -87,7 +90,7 @@ export class AuthService {
   static async changePassword(
     userId: string,
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Get user with password hash
@@ -147,13 +150,18 @@ export class AuthService {
    * @param email - User email
    * @returns Success status and message
    */
-  static async createPasswordResetRequest(email: string): Promise<{ success: boolean; message: string }> {
+  static async createPasswordResetRequest(
+    email: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       // Find user by email using the internal method
       const user = await UserService.getUserByEmailInternal(email);
       if (!user || !user.isActive) {
         // Log internally but return generic message externally for security
-        logger.info({ message: 'Password reset requested for non-existent or inactive email', email });
+        logger.info({
+          message: 'Password reset requested for non-existent or inactive email',
+          email,
+        });
         return {
           success: true, // Still return true externally
           message: 'If a matching account was found, a password reset email has been sent.',
@@ -219,7 +227,10 @@ export class AuthService {
    * @param newPassword - New password
    * @returns Success status and message
    */
-  static async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  static async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       // Find user by reset token
       const user = await prisma.user.findFirst({
@@ -260,12 +271,18 @@ export class AuthService {
 
       // Optionally send a confirmation email
       if (user.email) {
-          await sendEmail({
-              to: user.email,
-              subject: 'Your Password Has Been Reset',
-              text: 'Your password for the Web Scraper application has been successfully reset. If you did not perform this action, please contact support immediately.',
-              html: '<p>Your password for the Web Scraper application has been successfully reset. If you did not perform this action, please contact support immediately.</p>',
-          }).catch(err => logger.error({ message: 'Failed to send password reset confirmation email', userId: user.id, error: err }));
+        await sendEmail({
+          to: user.email,
+          subject: 'Your Password Has Been Reset',
+          text: 'Your password for the Web Scraper application has been successfully reset. If you did not perform this action, please contact support immediately.',
+          html: '<p>Your password for the Web Scraper application has been successfully reset. If you did not perform this action, please contact support immediately.</p>',
+        }).catch(err =>
+          logger.error({
+            message: 'Failed to send password reset confirmation email',
+            userId: user.id,
+            error: err,
+          }),
+        );
       }
 
       return {

@@ -11,7 +11,8 @@ interface PaginationOptions {
 
 // This interface accurately reflects the selection in getRecentScrapes and getAllScrapes
 // It's good practice to define return types clearly.
-export interface RecentScrapeOutput { // Added export
+export interface RecentScrapeOutput {
+  // Added export
   id: string;
   url: string;
   title: string | null;
@@ -29,7 +30,8 @@ export interface RecentScrapeOutput { // Added export
 
 // Define a type for the selected fields in getCrawlJobs for better type safety
 // Excludes potentially large fields like 'options' and 'failedUrls' for list views
-export type CrawlJobSummary = Pick< // Added export
+export type CrawlJobSummary = Pick<
+  // Added export
   CrawlJob,
   | 'id'
   | 'startUrl'
@@ -54,7 +56,7 @@ export class DashboardService {
    */
   static async getRecentScrapes(
     userId: string,
-    pagination: PaginationOptions
+    pagination: PaginationOptions,
   ): Promise<{ scrapes: RecentScrapeOutput[]; total: number }> {
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
@@ -123,7 +125,7 @@ export class DashboardService {
   static async getAllScrapes(
     userId: string,
     pagination: PaginationOptions,
-    filters: { search?: string; category?: string; tag?: string }
+    filters: { search?: string; category?: string; tag?: string },
   ): Promise<{ scrapes: RecentScrapeOutput[]; total: number }> {
     const { page, limit } = pagination;
     const { search, category, tag } = filters;
@@ -136,10 +138,7 @@ export class DashboardService {
 
     if (search) {
       // Note: mode: 'insensitive' is not supported by SQLite with Prisma. Search is case-sensitive.
-      where.OR = [
-        { url: { contains: search } },
-        { title: { contains: search } },
-      ];
+      where.OR = [{ url: { contains: search } }, { title: { contains: search } }];
     }
     if (category) {
       where.category = category; // Assuming 'category' is a direct string field
@@ -210,7 +209,7 @@ export class DashboardService {
    */
   static async getStatistics(
     userId: string,
-    dateRange: { start: Date; end: Date }
+    dateRange: { start: Date; end: Date },
   ): Promise<{
     totalScrapes: number;
     totalFavorites: number;
@@ -274,7 +273,8 @@ export class DashboardService {
 
       // Process scrapes by day (JS approach for DB compatibility)
       const dayMap = new Map<string, number>();
-      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => { // Add type annotation for 'page'
+      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => {
+        // Add type annotation for 'page'
         const dateStr = page.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
         dayMap.set(dateStr, (dayMap.get(dateStr) || 0) + 1);
       });
@@ -285,7 +285,8 @@ export class DashboardService {
 
       // Process top domains (JS approach)
       const domainMap = new Map<string, number>();
-      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => { // Add type annotation for 'page'
+      pagesForProcessing.forEach((page: { createdAt: Date; url: string }) => {
+        // Add type annotation for 'page'
         try {
           // Use URL object to reliably extract hostname
           const domain = new URL(page.url).hostname;
@@ -305,12 +306,16 @@ export class DashboardService {
 
       // Process job stats from groupBy results
       const scrapeJobStats = {
-        pending: rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
-        failed: rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
+        pending:
+          rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
+        failed:
+          rawScrapeJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
       };
       const crawlJobStats = {
-        pending: rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
-        failed: rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
+        pending:
+          rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'pending')?._count.status || 0, // Add type annotation for 's'
+        failed:
+          rawCrawlJobStats.find((s: JobStatGroup) => s.status === 'failed')?._count.status || 0, // Add type annotation for 's'
       };
 
       // Log the processed data for debugging
@@ -386,7 +391,7 @@ export class DashboardService {
   static async getScrapeJobs(
     userId: string,
     pagination: PaginationOptions,
-    filters: { status?: string } // Consider using Prisma.JobStatus enum if defined
+    filters: { status?: string }, // Consider using Prisma.JobStatus enum if defined
   ): Promise<{ jobs: ScrapeJob[]; total: number }> {
     // Use the Prisma generated ScrapeJob type
     const { page, limit } = pagination;
@@ -439,7 +444,10 @@ export class DashboardService {
    * @param userId - The ID of the user requesting the retry (for ownership check).
    * @returns Object indicating success or failure, and a message.
    */
-  static async retryScrapeJob(jobId: string, userId: string): Promise<{ success: boolean; message: string }> {
+  static async retryScrapeJob(
+    jobId: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const job = await prisma.scrapeJob.findUnique({
         where: { id: jobId },
@@ -451,14 +459,23 @@ export class DashboardService {
         return { success: false, message: 'Job not found.' };
       }
       if (job.userId !== userId) {
-        logger.warn({ message: `Retry attempt failed: Job ${jobId} does not belong to user ${userId}.` });
+        logger.warn({
+          message: `Retry attempt failed: Job ${jobId} does not belong to user ${userId}.`,
+        });
         return { success: false, message: 'Job not found or not owned by user.' };
       }
 
       // 2. Check if job is actually failed
-      if (job.status !== 'failed') { // Assuming 'failed' is the correct status string/enum value
-        logger.warn({ message: `Retry attempt failed: Job ${jobId} is not in 'failed' status (status: ${job.status}).`, userId });
-        return { success: false, message: `Only failed jobs can be retried. Current status: ${job.status}.` };
+      if (job.status !== 'failed') {
+        // Assuming 'failed' is the correct status string/enum value
+        logger.warn({
+          message: `Retry attempt failed: Job ${jobId} is not in 'failed' status (status: ${job.status}).`,
+          userId,
+        });
+        return {
+          success: false,
+          message: `Only failed jobs can be retried. Current status: ${job.status}.`,
+        };
       }
 
       // 3. Update job status to pending and reset fields
@@ -493,7 +510,10 @@ export class DashboardService {
    * @param userId - The ID of the user requesting the deletion (for ownership check).
    * @returns Object indicating success or failure, and a message.
    */
-  static async deleteScrapeJob(jobId: string, userId: string): Promise<{ success: boolean; message: string }> {
+  static async deleteScrapeJob(
+    jobId: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       // Use deleteMany with checks for ID and userId for atomicity and ownership verification
       // This avoids a separate findUnique call.
@@ -508,7 +528,9 @@ export class DashboardService {
       if (deleteResult.count === 0) {
         // Could be because the job didn't exist OR it didn't belong to the user
         // We might check if the job ID exists at all for a more specific message, but this is simpler.
-        logger.warn({ message: `Delete attempt failed: Job ${jobId} not found or not owned by user ${userId}.` });
+        logger.warn({
+          message: `Delete attempt failed: Job ${jobId} not found or not owned by user ${userId}.`,
+        });
         return { success: false, message: 'Job not found or not owned by user.' };
       }
 
@@ -538,7 +560,7 @@ export class DashboardService {
   static async getCrawlJobs(
     userId: string,
     pagination: PaginationOptions,
-    filters: { status?: string } // Consider using Prisma.JobStatus enum if defined
+    filters: { status?: string }, // Consider using Prisma.JobStatus enum if defined
   ): Promise<{ jobs: CrawlJobSummary[]; total: number }> {
     // Use the defined CrawlJobSummary type
     const { page, limit } = pagination;

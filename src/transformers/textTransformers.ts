@@ -10,10 +10,10 @@ export const textCleanupTransformer: ScrapedDataTransformer = {
   description: 'Cleans up text by removing excess whitespace, fixing common issues',
   transform: async (data: ScrapedData): Promise<ScrapedData> => {
     logger.debug('Running text cleanup transformer');
-    
+
     // Make a copy of the data
     const result = { ...data };
-    
+
     // Clean up content
     if (result.content) {
       result.content = result.content
@@ -21,9 +21,9 @@ export const textCleanupTransformer: ScrapedDataTransformer = {
         .replace(/\n\s*\n/g, '\n\n')
         .trim();
     }
-    
+
     return result;
-  }
+  },
 };
 
 /**
@@ -32,43 +32,63 @@ export const textCleanupTransformer: ScrapedDataTransformer = {
 export const textSummarizerTransformer: ScrapedDataTransformer = {
   name: 'textSummarizer',
   description: 'Creates a summary of the text content',
-  transform: async (data: ScrapedData, config?: Record<string, any>): Promise<ScrapedData & { summary: string }> => {
+  transform: async (
+    data: ScrapedData,
+    config?: Record<string, any>,
+  ): Promise<ScrapedData & { summary: string }> => {
     logger.debug('Running text summarizer transformer');
-    
+
     const maxLength = typeof config?.maxLength === 'number' ? config.maxLength : 200;
-    
+
     // Make a copy of the data
     const result = { ...data };
-    
+
     // Create a simple summary (first maxLength characters)
     // In a real implementation, this would use a more sophisticated algorithm
     const summary = data.content.slice(0, maxLength).trim() + '...';
-    
+
     return {
       ...result,
-      summary
+      summary,
     };
-  }
+  },
 };
 
 /**
  * Keyword extraction transformer
  */
-export const keywordExtractorTransformer: ScrapedDataTransformer<ScrapedData & { keywords: string[] }> = {
+export const keywordExtractorTransformer: ScrapedDataTransformer<
+  ScrapedData & { keywords: string[] }
+> = {
   name: 'keywordExtractor',
   description: 'Extracts keywords from the text content',
-  transform: async (data: ScrapedData, config?: Record<string, any>): Promise<ScrapedData & { keywords: string[] }> => {
+  transform: async (
+    data: ScrapedData,
+    config?: Record<string, any>,
+  ): Promise<ScrapedData & { keywords: string[] }> => {
     logger.debug('Running keyword extractor transformer');
-    
+
     const maxKeywords = typeof config?.maxKeywords === 'number' ? config.maxKeywords : 10;
-    
+
     // Make a copy of the data
     const result = { ...data };
-    
+
     // Simple keyword extraction (in a real implementation, this would be more sophisticated)
-    const stopWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by']);
+    const stopWords = new Set([
+      'the',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'with',
+      'by',
+    ]);
     const words = data.content.toLowerCase().match(/\b\w+\b/g) || [];
-    
+
     // Count word frequency
     const wordCounts: Record<string, number> = {};
     words.forEach(word => {
@@ -76,16 +96,16 @@ export const keywordExtractorTransformer: ScrapedDataTransformer<ScrapedData & {
         wordCounts[word] = (wordCounts[word] || 0) + 1;
       }
     });
-    
+
     // Sort by frequency
     const keywords = Object.entries(wordCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, maxKeywords)
       .map(([word]) => word);
-    
+
     return {
       ...result,
-      keywords
+      keywords,
     };
-  }
+  },
 };

@@ -14,7 +14,7 @@ const envConfig = dotenv.config({ path: envPath });
 if (envConfig.error) {
   console.warn(`Warning: Could not load .env file from ${envPath}:`, envConfig.error);
   // Depending on your needs, you might want to exit if .env is crucial
-  // process.exit(1); 
+  // process.exit(1);
 } else {
   console.log(`.env file loaded successfully from: ${envPath}`);
 }
@@ -35,7 +35,9 @@ async function main() {
 
   // Crucial Check: Ensure DATABASE_URL was actually loaded before making DB calls
   if (!process.env.DATABASE_URL) {
-    throw new Error("FATAL: DATABASE_URL environment variable is not set. Check .env file and loading process.");
+    throw new Error(
+      'FATAL: DATABASE_URL environment variable is not set. Check .env file and loading process.',
+    );
   }
 
   const defaultUsername = 'admin';
@@ -68,9 +70,8 @@ async function main() {
       });
       console.log(`Created default admin user with username: ${user.username}`);
     }
-
   } catch (error) {
-    console.error("Error during seeding process:", error);
+    console.error('Error during seeding process:', error);
     throw error; // Re-throw the error to be caught by the final catch block
   }
 
@@ -79,13 +80,13 @@ async function main() {
 
 // Execute the main seeding function and handle potential errors/cleanup
 main()
-  .catch((e) => {
-    console.error("Seeding script failed:", e);
+  .catch(e => {
+    console.error('Seeding script failed:', e);
     process.exit(1);
   })
   .finally(async () => {
     // Ensure Prisma Client disconnects gracefully
-    console.log("Disconnecting Prisma Client...");
+    console.log('Disconnecting Prisma Client...');
     await prisma.$disconnect();
-    console.log("Prisma Client disconnected.");
+    console.log('Prisma Client disconnected.');
   });

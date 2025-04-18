@@ -41,21 +41,21 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
       });
       return;
     }
-    
+
     // Extract and verify token
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as User;
-    
+
     // Add user to request
     req.user = decoded;
-    
+
     next();
   } catch (error) {
     logger.warn({
       message: 'Authentication failed',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(401).json({
       status: 'error',
       message: 'Invalid or expired token',
@@ -74,7 +74,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
     });
     return; // Exit after sending response
   }
-  
+
   next();
 }
 
@@ -87,7 +87,10 @@ export function conditionalAuthForTransform(req: Request, res: Response, next: N
   const internalHeader = req.headers['x-internal-request'];
   const remoteAddress = req.ip || req.connection.remoteAddress;
 
-  const isLocalhost = remoteAddress === '::1' || remoteAddress === '127.0.0.1' || remoteAddress === '::ffff:127.0.0.1';
+  const isLocalhost =
+    remoteAddress === '::1' ||
+    remoteAddress === '127.0.0.1' ||
+    remoteAddress === '::ffff:127.0.0.1';
   const isInternal = internalHeader === 'true' || internalHeader === '1';
 
   if (isLocalhost || isInternal) {

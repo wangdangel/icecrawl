@@ -2,13 +2,13 @@
 
 /**
  * Version Analyzer Script
- * 
+ *
  * Analyzes git commits to determine appropriate semantic version bump.
  * Uses conventional commit format: https://www.conventionalcommits.org/
- * 
+ *
  * Usage:
  *   node scripts/version-analyzer.js
- * 
+ *
  * Output:
  *   Prints the recommended version bump (major, minor, patch)
  */
@@ -83,7 +83,7 @@ if (hasMajorChanges) {
 if (versionBump) {
   const [major, minor, patch] = currentVersion.split('.').map(Number);
   let newVersion;
-  
+
   switch (versionBump) {
     case 'major':
       newVersion = `${major + 1}.0.0`;
@@ -95,10 +95,10 @@ if (versionBump) {
       newVersion = `${major}.${minor}.${patch + 1}`;
       break;
   }
-  
+
   console.log(`Recommended version bump: ${versionBump}`);
   console.log(`New version would be: ${newVersion}`);
-  
+
   // Output the result for CI/CD pipeline
   console.log(`::set-output name=version_bump::${versionBump}`);
   console.log(`::set-output name=new_version::${newVersion}`);

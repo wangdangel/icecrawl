@@ -43,9 +43,9 @@ router.get('/', (_req: Request, res: Response) => {
     active: p.active,
     lastUsed: p.lastUsed,
     successCount: p.successCount,
-    failCount: p.failCount
+    failCount: p.failCount,
   }));
-  
+
   res.status(200).json({
     status: 'success',
     data: proxies,
@@ -100,27 +100,27 @@ router.post('/', async (req: Request, res: Response) => {
         details: parsedInput.error.format(),
       });
     }
-    
+
     const { host, port, username, password } = parsedInput.data;
-    
+
     // Create proxy config
     const proxyConfig = {
       host,
       port,
-      ...(username && password ? { auth: { username, password } } : {})
+      ...(username && password ? { auth: { username, password } } : {}),
     };
-    
+
     // Add to pool
     proxyManager.addProxy(proxyConfig);
-    
+
     logger.info({
       message: 'Proxy added',
       host,
       port,
       auth: username && password ? true : false,
-      userId: req.user?.id // Add optional chaining
+      userId: req.user?.id, // Add optional chaining
     });
-    
+
     res.status(201).json({
       status: 'success',
       message: 'Proxy added successfully',
@@ -130,7 +130,7 @@ router.post('/', async (req: Request, res: Response) => {
       message: 'Error adding proxy',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(500).json({
       status: 'error',
       message: 'An error occurred while adding the proxy',
@@ -172,16 +172,16 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.post('/:host/:port/reactivate', (req: Request, res: Response) => {
   const { host, port } = req.params;
-  
+
   proxyManager.reactivateProxy(host, parseInt(port));
-  
+
   logger.info({
     message: 'Proxy reactivation requested',
     host,
     port,
-    userId: req.user?.id // Add optional chaining
+    userId: req.user?.id, // Add optional chaining
   });
-  
+
   res.status(200).json({
     status: 'success',
     message: 'Proxy reactivated',

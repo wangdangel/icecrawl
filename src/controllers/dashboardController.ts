@@ -6,8 +6,16 @@ import prisma from '../db/prismaClient';
 
 // Validation schema for pagination
 const paginationSchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1).pipe(z.number().int().positive().default(1)),
-  limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 10).pipe(z.number().int().positive().max(100).default(10)), // Add max limit
+  page: z
+    .string()
+    .optional()
+    .transform(val => (val ? parseInt(val, 10) : 1))
+    .pipe(z.number().int().positive().default(1)),
+  limit: z
+    .string()
+    .optional()
+    .transform(val => (val ? parseInt(val, 10) : 10))
+    .pipe(z.number().int().positive().max(100).default(10)), // Add max limit
 });
 
 // Validation schema for filtering scrapes
@@ -25,9 +33,8 @@ const dateRangeSchema = z.object({
 
 // Validation schema for scrape job filters
 const scrapeJobFilterSchema = paginationSchema.extend({
-    status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
 });
-
 
 export class DashboardController {
   /**
@@ -89,7 +96,7 @@ export class DashboardController {
     try {
       // Validate pagination and filter params
       const validationResult = scrapeFilterSchema.safeParse(req.query);
-       if (!validationResult.success) {
+      if (!validationResult.success) {
         return res.status(400).json({
           status: 'error',
           message: 'Invalid query parameters',
@@ -103,7 +110,7 @@ export class DashboardController {
       const { scrapes, total } = await DashboardService.getAllScrapes(
         userId,
         { page, limit },
-        { search, category, tag }
+        { search, category, tag },
       );
 
       // Calculate pagination info
@@ -270,7 +277,7 @@ export class DashboardController {
       const { jobs, total } = await DashboardService.getScrapeJobs(
         userId,
         { page, limit },
-        { status }
+        { status },
       );
 
       // Calculate pagination info
@@ -332,7 +339,6 @@ export class DashboardController {
         status: 'success',
         message: result.message,
       });
-
     } catch (error) {
       logger.error({
         message: 'Error retrying scrape job in controller',
@@ -373,7 +379,6 @@ export class DashboardController {
         status: 'success',
         message: result.message,
       });
-
     } catch (error) {
       // Catch potential errors not handled by the service layer's try/catch
       logger.error({
@@ -396,7 +401,9 @@ export class DashboardController {
       const querySchema = z.object({
         page: z.coerce.number().int().min(1).optional().default(1),
         limit: z.coerce.number().int().min(1).max(100).optional().default(10),
-        status: z.enum(["pending", "processing", "completed", "completed_with_errors", "failed"]).optional(),
+        status: z
+          .enum(['pending', 'processing', 'completed', 'completed_with_errors', 'failed'])
+          .optional(),
       });
 
       const parsedQuery = querySchema.safeParse(req.query);
@@ -412,7 +419,11 @@ export class DashboardController {
       const userId = req.user!.id; // Assumes authenticate middleware ran
 
       // Call service layer, passing pagination and filters as objects
-      const { jobs, total } = await DashboardService.getCrawlJobs(userId, { page, limit }, { status });
+      const { jobs, total } = await DashboardService.getCrawlJobs(
+        userId,
+        { page, limit },
+        { status },
+      );
 
       // Calculate pagination info
       const totalPages = Math.ceil(total / limit);
@@ -431,7 +442,6 @@ export class DashboardController {
           },
         },
       });
-
     } catch (error) {
       logger.error({
         message: 'Error getting crawl jobs for dashboard',
@@ -493,7 +503,9 @@ export class DashboardController {
       }
 
       if (existing.userId && existing.userId !== userId) {
-        return res.status(403).json({ status: 'error', message: 'Not authorized to delete this scrape' });
+        return res
+          .status(403)
+          .json({ status: 'error', message: 'Not authorized to delete this scrape' });
       }
 
       await prisma.scrapedPage.delete({

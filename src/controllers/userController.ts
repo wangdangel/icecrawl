@@ -48,7 +48,6 @@ const passwordResetSchema = z.object({
   newPassword: z.string().min(8).max(100),
 });
 
-
 export class UserController {
   static async login(req: Request, res: Response): Promise<Response> {
     try {
@@ -296,7 +295,8 @@ export class UserController {
       const result = await AuthService.changePassword(userId, currentPassword, newPassword);
 
       if (!result.success) {
-        return res.status(401).json({ // Use 401 for incorrect current password
+        return res.status(401).json({
+          // Use 401 for incorrect current password
           status: 'error',
           message: result.message,
         });
@@ -378,7 +378,8 @@ export class UserController {
       const result = await AuthService.resetPassword(token, newPassword);
 
       if (!result.success) {
-        return res.status(401).json({ // Use 401 for invalid/expired token
+        return res.status(401).json({
+          // Use 401 for invalid/expired token
           status: 'error',
           message: result.message,
         });

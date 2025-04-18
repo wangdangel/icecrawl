@@ -12,7 +12,8 @@ jest.mock('bcrypt');
 jest.mock('jsonwebtoken');
 jest.mock('crypto');
 jest.mock('../userService');
-jest.mock('../../db/prismaClient', () => ({ // Mock the shared prisma instance
+jest.mock('../../db/prismaClient', () => ({
+  // Mock the shared prisma instance
   __esModule: true,
   default: {
     user: {
@@ -23,7 +24,8 @@ jest.mock('../../db/prismaClient', () => ({ // Mock the shared prisma instance
   },
 }));
 jest.mock('../../utils/email-utils');
-jest.mock('../../utils/logger', () => ({ // Mock logger to suppress output during tests
+jest.mock('../../utils/logger', () => ({
+  // Mock logger to suppress output during tests
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -55,16 +57,16 @@ describe('AuthService', () => {
       };
       const expectedToken = 'mocked.jwt.token';
       // Cast jwt.sign to jest.Mock when setting return value
-      (jwt.sign as jest.Mock).mockReturnValue(expectedToken); 
+      (jwt.sign as jest.Mock).mockReturnValue(expectedToken);
 
       const token = AuthService.generateToken(user);
 
       expect(token).toBe(expectedToken);
       // Cast jwt.sign to jest.Mock for assertion
-      expect(jwt.sign as jest.Mock).toHaveBeenCalledWith( 
+      expect(jwt.sign as jest.Mock).toHaveBeenCalledWith(
         { id: user.id, username: user.username, role: user.role }, // Payload
         process.env.JWT_SECRET || 'your-secret-key-change-this-in-production', // Secret
-        { expiresIn: '24h' } // Options
+        { expiresIn: '24h' }, // Options
       );
     });
   });
@@ -92,7 +94,7 @@ describe('AuthService', () => {
     it('should return SafeUser if credentials are valid', async () => {
       mockedUserService.getUserByUsernameInternal.mockResolvedValue(mockUser);
       // Explicitly type the mock resolution
-      (mockedBcrypt.compare as jest.Mock).mockResolvedValue(true as never); 
+      (mockedBcrypt.compare as jest.Mock).mockResolvedValue(true as never);
 
       const result = await AuthService.verifyCredentials(username, password);
 
@@ -145,11 +147,13 @@ describe('AuthService', () => {
       const result = await AuthService.verifyCredentials(username, password);
 
       expect(result).toBeNull();
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Error verifying credentials',
-        username,
-        error: error.message,
-      }));
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error verifying credentials',
+          username,
+          error: error.message,
+        }),
+      );
       expect(mockedBcrypt.compare).not.toHaveBeenCalled();
       expect(mockedUserService.updateLastLogin).not.toHaveBeenCalled();
     });
@@ -180,7 +184,10 @@ describe('AuthService', () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (mockedBcrypt.compare as jest.Mock).mockResolvedValue(true as never);
       (mockedBcrypt.hash as jest.Mock).mockResolvedValue(newHashedPassword as never);
-      (prisma.user.update as jest.Mock).mockResolvedValue({ ...mockUser, password: newHashedPassword });
+      (prisma.user.update as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        password: newHashedPassword,
+      });
 
       const result = await AuthService.changePassword(userId, currentPassword, newPassword);
 
@@ -192,7 +199,9 @@ describe('AuthService', () => {
         where: { id: userId },
         data: { password: newHashedPassword },
       });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Password changed successfully', userId }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Password changed successfully', userId }),
+      );
     });
 
     it('should return error if user is not found', async () => {
@@ -206,7 +215,7 @@ describe('AuthService', () => {
       expect(mockedBcrypt.hash).not.toHaveBeenCalled();
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
-    
+
     it('should return error if user is inactive', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({ ...mockUser, isActive: false });
 
@@ -238,18 +247,23 @@ describe('AuthService', () => {
 
       const result = await AuthService.changePassword(userId, currentPassword, newPassword);
 
-      expect(result).toEqual({ success: false, message: 'Failed to change password due to an internal error.' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Error changing password',
-        userId,
-        error: error.message,
-      }));
+      expect(result).toEqual({
+        success: false,
+        message: 'Failed to change password due to an internal error.',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error changing password',
+          userId,
+          error: error.message,
+        }),
+      );
       expect(mockedBcrypt.compare).not.toHaveBeenCalled();
       expect(mockedBcrypt.hash).not.toHaveBeenCalled();
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
-    
-     it('should return error and log if an exception occurs during update', async () => {
+
+    it('should return error and log if an exception occurs during update', async () => {
       const error = new Error('DB update error');
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (mockedBcrypt.compare as jest.Mock).mockResolvedValue(true as never);
@@ -258,12 +272,17 @@ describe('AuthService', () => {
 
       const result = await AuthService.changePassword(userId, currentPassword, newPassword);
 
-      expect(result).toEqual({ success: false, message: 'Failed to change password due to an internal error.' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Error changing password',
-        userId,
-        error: error.message,
-      }));
+      expect(result).toEqual({
+        success: false,
+        message: 'Failed to change password due to an internal error.',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error changing password',
+          userId,
+          error: error.message,
+        }),
+      );
     });
   });
 
@@ -298,7 +317,10 @@ describe('AuthService', () => {
 
       const result = await AuthService.createPasswordResetRequest(email);
 
-      expect(result).toEqual({ success: true, message: 'If a matching account was found, a password reset email has been sent.' });
+      expect(result).toEqual({
+        success: true,
+        message: 'If a matching account was found, a password reset email has been sent.',
+      });
       expect(mockedUserService.getUserByEmailInternal).toHaveBeenCalledWith(email);
       expect(mockedCrypto.randomBytes).toHaveBeenCalledWith(32);
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -308,13 +330,20 @@ describe('AuthService', () => {
           resetTokenExpiry: expect.any(Date), // Check that expiry is a Date
         },
       });
-      expect(mockedSendEmail).toHaveBeenCalledWith(expect.objectContaining({
-        to: email,
-        subject: 'Password Reset Request',
-        text: expect.stringContaining(mockToken),
-        html: expect.stringContaining(mockToken),
-      }));
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Password reset request created and email sent', userId: mockUser.id }));
+      expect(mockedSendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: email,
+          subject: 'Password Reset Request',
+          text: expect.stringContaining(mockToken),
+          html: expect.stringContaining(mockToken),
+        }),
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Password reset request created and email sent',
+          userId: mockUser.id,
+        }),
+      );
     });
 
     it('should return generic success message if user not found', async () => {
@@ -322,23 +351,39 @@ describe('AuthService', () => {
 
       const result = await AuthService.createPasswordResetRequest(email);
 
-      expect(result).toEqual({ success: true, message: 'If a matching account was found, a password reset email has been sent.' });
+      expect(result).toEqual({
+        success: true,
+        message: 'If a matching account was found, a password reset email has been sent.',
+      });
       expect(mockedUserService.getUserByEmailInternal).toHaveBeenCalledWith(email);
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(mockedSendEmail).not.toHaveBeenCalled();
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Password reset requested for non-existent or inactive email', email }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Password reset requested for non-existent or inactive email',
+          email,
+        }),
+      );
     });
-    
+
     it('should return generic success message if user is inactive', async () => {
       mockedUserService.getUserByEmailInternal.mockResolvedValue({ ...mockUser, isActive: false });
 
       const result = await AuthService.createPasswordResetRequest(email);
 
-      expect(result).toEqual({ success: true, message: 'If a matching account was found, a password reset email has been sent.' });
+      expect(result).toEqual({
+        success: true,
+        message: 'If a matching account was found, a password reset email has been sent.',
+      });
       expect(mockedUserService.getUserByEmailInternal).toHaveBeenCalledWith(email);
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(mockedSendEmail).not.toHaveBeenCalled();
-       expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Password reset requested for non-existent or inactive email', email }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Password reset requested for non-existent or inactive email',
+          email,
+        }),
+      );
     });
 
     it('should return generic success message and log error if an exception occurs', async () => {
@@ -349,12 +394,17 @@ describe('AuthService', () => {
 
       const result = await AuthService.createPasswordResetRequest(email);
 
-      expect(result).toEqual({ success: true, message: 'If a matching account was found, a password reset email has been sent.' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Error creating password reset request',
-        email,
-        error: error.message,
-      }));
+      expect(result).toEqual({
+        success: true,
+        message: 'If a matching account was found, a password reset email has been sent.',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error creating password reset request',
+          email,
+          error: error.message,
+        }),
+      );
     });
   });
 
@@ -362,7 +412,7 @@ describe('AuthService', () => {
     const token = 'validResetToken';
     const newPassword = 'newSecurePassword';
     const newHashedPassword = 'hashedNewSecurePassword';
-     const mockUser: User = {
+    const mockUser: User = {
       id: 'user-456',
       username: 'resetuser',
       email: 'reset@example.com',
@@ -379,7 +429,12 @@ describe('AuthService', () => {
     it('should reset password successfully if token is valid and not expired', async () => {
       (prisma.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
       (mockedBcrypt.hash as jest.Mock).mockResolvedValue(newHashedPassword as never);
-      (prisma.user.update as jest.Mock).mockResolvedValue({ ...mockUser, password: newHashedPassword, resetToken: null, resetTokenExpiry: null });
+      (prisma.user.update as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        password: newHashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      });
       mockedSendEmail.mockResolvedValue('mock-confirmation-id'); // Mock confirmation email with a string
 
       const result = await AuthService.resetPassword(token, newPassword);
@@ -401,11 +456,15 @@ describe('AuthService', () => {
           resetTokenExpiry: null,
         },
       });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Password reset successfully', userId: mockUser.id }));
-      expect(mockedSendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Password reset successfully', userId: mockUser.id }),
+      );
+      expect(mockedSendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
           to: mockUser.email,
           subject: 'Your Password Has Been Reset',
-      }));
+        }),
+      );
     });
 
     it('should return error if token is invalid or expired', async () => {
@@ -413,7 +472,10 @@ describe('AuthService', () => {
 
       const result = await AuthService.resetPassword(token, newPassword);
 
-      expect(result).toEqual({ success: false, message: 'Invalid or expired password reset token.' });
+      expect(result).toEqual({
+        success: false,
+        message: 'Invalid or expired password reset token.',
+      });
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: {
           resetToken: token,
@@ -428,11 +490,11 @@ describe('AuthService', () => {
 
     it('should return error if user is inactive', async () => {
       // Correct Mock: Simulate Prisma returning null because the where clause includes isActive: true
-      (prisma.user.findFirst as jest.Mock).mockImplementation(async (args) => {
+      (prisma.user.findFirst as jest.Mock).mockImplementation(async args => {
         if (args.where.resetToken === token && args.where.isActive === true) {
           // Simulate finding the user record but it doesn't match isActive: true
           // In a real scenario, Prisma would return null here based on the query.
-          return null; 
+          return null;
         }
         return null; // Default return null if conditions don't match
       });
@@ -440,7 +502,10 @@ describe('AuthService', () => {
       const result = await AuthService.resetPassword(token, newPassword);
 
       // The findFirst query includes isActive: true, so it should behave like token not found
-      expect(result).toEqual({ success: false, message: 'Invalid or expired password reset token.' }); 
+      expect(result).toEqual({
+        success: false,
+        message: 'Invalid or expired password reset token.',
+      });
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: {
           resetToken: token,
@@ -459,12 +524,17 @@ describe('AuthService', () => {
 
       const result = await AuthService.resetPassword(token, newPassword);
 
-      expect(result).toEqual({ success: false, message: 'Failed to reset password due to an internal error.' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Error resetting password',
-        tokenUsed: 'yes',
-        error: error.message,
-      }));
+      expect(result).toEqual({
+        success: false,
+        message: 'Failed to reset password due to an internal error.',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error resetting password',
+          tokenUsed: 'yes',
+          error: error.message,
+        }),
+      );
       expect(mockedBcrypt.hash).not.toHaveBeenCalled();
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(mockedSendEmail).not.toHaveBeenCalled();

@@ -9,11 +9,15 @@ const execPromise = util.promisify(exec);
 const CLI_PATH = path.resolve(__dirname, '../../dist/cli.js');
 
 // Helper to run CLI commands
-async function runCli(args: string = '', stdin: string = ''): Promise<{ stdout: string; stderr: string; code: number | null }> {
-  return new Promise((resolve) => { // Changed reject to resolve
+async function runCli(
+  args: string = '',
+  stdin: string = '',
+): Promise<{ stdout: string; stderr: string; code: number | null }> {
+  return new Promise(resolve => {
+    // Changed reject to resolve
     const child = exec(`node ${CLI_PATH} ${args}`, (error, stdout, stderr) => {
       // Always resolve, let the test check stderr and code
-      resolve({ stdout, stderr, code: error?.code ?? 0 }); 
+      resolve({ stdout, stderr, code: error?.code ?? 0 });
     });
 
     if (stdin) {
@@ -33,18 +37,18 @@ describe('CLI', () => {
       }));
     }
   });
-  
+
   test('should display help information with --help flag', async () => {
     const { stdout } = await runCli('--help');
-    
+
     expect(stdout).toContain('Usage:');
     expect(stdout).toContain('Options:');
     expect(stdout).toContain('Commands:');
   });
-  
+
   test('should process URL from stdin', async () => {
     const { stdout } = await runCli('--format json', 'https://example.com');
-    
+
     const result = JSON.parse(stdout);
     expect(result).toHaveProperty('url', 'https://example.com');
     expect(result).toHaveProperty('title');
@@ -57,7 +61,7 @@ describe('CLI', () => {
 
     // Check for errors first - Now stderr should be empty because of --silent
     expect(stderr).toBe(''); // Expect nothing on stderr for clean JSON output
-    expect(code).toBe(0);    // Expect success exit code
+    expect(code).toBe(0); // Expect success exit code
 
     // Now parse stdout
     const result = JSON.parse(stdout); // This should now only parse actual stdout
@@ -65,11 +69,11 @@ describe('CLI', () => {
     expect(result).toHaveProperty('title');
     expect(result).toHaveProperty('content');
   });
-  
+
   test('should handle invalid URLs', async () => {
     // Destructure code here as well
-    const { stderr, code } = await runCli('url invalid-url'); 
-    
+    const { stderr, code } = await runCli('url invalid-url');
+
     expect(stderr).toContain('Error:'); // Expect error message on stderr
     expect(code).not.toBe(0); // Expect non-zero exit code
   });

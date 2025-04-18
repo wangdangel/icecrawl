@@ -16,6 +16,8 @@ export interface ForumScraperOptions {
   output?: 'default' | 'sqlite' | 'file';
   filePath?: string; // For sqlite or file output
   jobId?: string;
+  useCookies?: boolean;
+  cookieString?: string;
 }
 
 export interface ForumPost {
@@ -40,13 +42,18 @@ export class ForumScraper {
     let pageCount = 0;
     let prisma: PrismaClient | null = null;
     let usePrismaFile = this.options.output === 'sqlite' && this.options.filePath;
-    logger.info({ message: 'ForumScraper.scrape started', startUrl: url, options: this.options, maxPages: this.options.maxPages });
+    logger.info({
+      message: 'ForumScraper.scrape started',
+      startUrl: url,
+      options: this.options,
+      maxPages: this.options.maxPages,
+    });
     const seenUrls = new Set<string>();
     if (usePrismaFile) {
       // Dynamically create a Prisma client with a custom SQLite file
       const dbPath = path.resolve(this.options.filePath!);
       prisma = new PrismaClient({
-        datasources: { db: { url: `file:${dbPath}` } }
+        datasources: { db: { url: `file:${dbPath}` } },
       });
       logger.info({ message: 'Initialized Prisma with custom SQLite file', dbPath });
     } else {
@@ -57,7 +64,11 @@ export class ForumScraper {
         pageCount++;
         logger.info({ message: 'Scraping page', pageCount, url, maxPages: this.options.maxPages });
         if (this.options.maxPages && pageCount >= this.options.maxPages) {
-          logger.info({ message: 'Reached maxPages limit', pageCount, maxPages: this.options.maxPages });
+          logger.info({
+            message: 'Reached maxPages limit',
+            pageCount,
+            maxPages: this.options.maxPages,
+          });
           break;
         }
         if (seenUrls.has(url)) {
@@ -80,26 +91,41 @@ export class ForumScraper {
                 content: post.content,
                 url: post.url,
                 meta: JSON.stringify(post.meta),
-                jobId: this.jobId ? String(this.jobId) : undefined
-              }
+                jobId: this.jobId ? String(this.jobId) : undefined,
+              },
             });
           }
-          logger.info({ message: 'Saved forum posts to database', count: postsThisPage.length, jobId: this.jobId });
+          logger.info({
+            message: 'Saved forum posts to database',
+            count: postsThisPage.length,
+            jobId: this.jobId,
+          });
         }
         // --- CANCELLATION CHECK ---
         if (this.options.jobId) {
           const isCancelled = await isCrawlJobCancelled(this.options.jobId);
           if (isCancelled) {
-            logger.info({ message: 'ForumScraper.scrape detected job cancellation', jobId: this.options.jobId, pageCount });
+            logger.info({
+              message: 'ForumScraper.scrape detected job cancellation',
+              jobId: this.options.jobId,
+              pageCount,
+            });
             break;
           }
         }
         url = this.getNextPageUrl($, url);
         logger.info({ message: 'Next page URL', nextUrl: url });
       }
-      logger.info({ message: 'ForumScraper.scrape finished', totalPages: pageCount, totalPosts: this.posts.length });
+      logger.info({
+        message: 'ForumScraper.scrape finished',
+        totalPages: pageCount,
+        totalPosts: this.posts.length,
+      });
     } catch (err: any) {
-      logger.error({ message: 'Error in ForumScraper.scrape', error: err && typeof err === 'object' && 'stack' in err ? err.stack : err });
+      logger.error({
+        message: 'Error in ForumScraper.scrape',
+        error: err && typeof err === 'object' && 'stack' in err ? err.stack : err,
+      });
       throw err;
     } finally {
       if (prisma) await prisma.$disconnect();
@@ -109,7 +135,13 @@ export class ForumScraper {
   }
 
   private async fetchPage(url: string): Promise<string> {
-    const response = await axios.get(url);
+    // Inject cookies if provided
+    const config: any = {};
+    if (this.options.useCookies && this.options.cookieString) {
+      config.headers = { Cookie: this.options.cookieString };
+      logger.info({ message: 'Fetching page with cookies', url, cookieString: this.options.cookieString });
+    }
+    const response = await axios.get(url, config);
     return response.data;
   }
 
@@ -140,7 +172,9 @@ export class ForumScraper {
   private getNextPageUrl($: cheerio.CheerioAPI, baseUrl: string): string | null {
     let nextPageEl = $(this.options.nextPageSelector);
     if (this.options.nextPageText) {
-      nextPageEl = nextPageEl.filter((_, el) => $(el).text().trim().startsWith(this.options.nextPageText!));
+      nextPageEl = nextPageEl.filter((_, el) =>
+        $(el).text().trim().startsWith(this.options.nextPageText!),
+      );
     }
     const href = nextPageEl.attr('href');
     if (!href) return null;

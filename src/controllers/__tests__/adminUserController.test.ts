@@ -13,7 +13,12 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 // Mock Express Request and Response objects
-const mockRequest = (query: any = {}, params: any = {}, body: any = {}, user: any = null): Partial<Request> => ({
+const mockRequest = (
+  query: any = {},
+  params: any = {},
+  body: any = {},
+  user: any = null,
+): Partial<Request> => ({
   query,
   params,
   body,
@@ -34,15 +39,15 @@ describe('AdminUserController', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   const mockAdminUser = { id: 'admin-1', role: 'admin' }; // Simulate admin making request
-  const mockSafeUser: SafeUser = { 
-      id: 'user-1', 
-      username: 'testuser', 
-      role: 'user', 
-      email: 'test@example.com', 
-      isActive: true, 
-      createdAt: new Date(), 
-      updatedAt: new Date(), 
-      lastLogin: undefined 
+  const mockSafeUser: SafeUser = {
+    id: 'user-1',
+    username: 'testuser',
+    role: 'user',
+    email: 'test@example.com',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLogin: undefined,
   };
 
   beforeEach(() => {
@@ -75,9 +80,14 @@ describe('AdminUserController', () => {
         },
       });
     });
-    
+
     it('should handle filters correctly', async () => {
-      req = mockRequest({ username: 'test', role: 'admin', isActive: 'false' }, {}, {}, mockAdminUser);
+      req = mockRequest(
+        { username: 'test', role: 'admin', isActive: 'false' },
+        {},
+        {},
+        mockAdminUser,
+      );
       mockedUserService.getAllUsers.mockResolvedValue({ users: [], total: 0 });
 
       await AdminUserController.getAllUsers(req as Request, res as Response);
@@ -97,47 +107,57 @@ describe('AdminUserController', () => {
       await AdminUserController.getAllUsers(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while getting users' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error getting users (admin)' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while getting users',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error getting users (admin)' }),
+      );
     });
   });
 
   // --- getUserById ---
   describe('getUserById', () => {
-     it('should return user if found', async () => {
-        req = mockRequest({}, { id: 'user-1' }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue(mockSafeUser);
+    it('should return user if found', async () => {
+      req = mockRequest({}, { id: 'user-1' }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue(mockSafeUser);
 
-        await AdminUserController.getUserById(req as Request, res as Response);
+      await AdminUserController.getUserById(req as Request, res as Response);
 
-        expect(mockedUserService.getUserById).toHaveBeenCalledWith('user-1');
-        expect(res.json).toHaveBeenCalledWith({
-            status: 'success',
-            data: { user: mockSafeUser },
-        });
-     });
-     
-     it('should return 404 if user not found', async () => {
-        req = mockRequest({}, { id: 'not-found' }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue(null);
+      expect(mockedUserService.getUserById).toHaveBeenCalledWith('user-1');
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        data: { user: mockSafeUser },
+      });
+    });
 
-        await AdminUserController.getUserById(req as Request, res as Response);
+    it('should return 404 if user not found', async () => {
+      req = mockRequest({}, { id: 'not-found' }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue(null);
 
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
-     });
-     
-     it('should return 500 if an error occurs', async () => {
-        req = mockRequest({}, { id: 'user-1' }, {}, mockAdminUser);
-        const error = new Error('DB Error');
-        mockedUserService.getUserById.mockRejectedValue(error);
+      await AdminUserController.getUserById(req as Request, res as Response);
 
-        await AdminUserController.getUserById(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
+    });
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while getting user' });
-        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error getting user by ID (admin)' }));
-     });
+    it('should return 500 if an error occurs', async () => {
+      req = mockRequest({}, { id: 'user-1' }, {}, mockAdminUser);
+      const error = new Error('DB Error');
+      mockedUserService.getUserById.mockRejectedValue(error);
+
+      await AdminUserController.getUserById(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while getting user',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error getting user by ID (admin)' }),
+      );
+    });
   });
 
   // --- updateUser ---
@@ -151,7 +171,7 @@ describe('AdminUserController', () => {
       mockedUserService.getUserById.mockResolvedValue(mockSafeUser); // User exists
       mockedUserService.getUserByUsernameInternal.mockResolvedValue(null); // No username conflict
       // Explicitly cast the resolved value to SafeUser
-      mockedUserService.updateUser.mockResolvedValue(updatedUser as SafeUser); 
+      mockedUserService.updateUser.mockResolvedValue(updatedUser as SafeUser);
 
       await AdminUserController.updateUser(req as Request, res as Response);
 
@@ -161,15 +181,19 @@ describe('AdminUserController', () => {
         message: 'User updated successfully',
         data: { user: updatedUser },
       });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Admin updated user' }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Admin updated user' }),
+      );
     });
-    
+
     it('should return 400 for invalid input data', async () => {
-        req = mockRequest({}, { id: userId }, { username: 'u' }, mockAdminUser); // Invalid username
-        await AdminUserController.updateUser(req as Request, res as Response);
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
-     });
+      req = mockRequest({}, { id: userId }, { username: 'u' }, mockAdminUser); // Invalid username
+      await AdminUserController.updateUser(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
+    });
 
     it('should return 404 if user to update not found', async () => {
       req = mockRequest({}, { id: userId }, updateData, mockAdminUser);
@@ -181,19 +205,22 @@ describe('AdminUserController', () => {
       expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
       expect(mockedUserService.updateUser).not.toHaveBeenCalled();
     });
-    
+
     it('should return 409 if username conflicts', async () => {
       req = mockRequest({}, { id: userId }, updateData, mockAdminUser);
-      mockedUserService.getUserById.mockResolvedValue(mockSafeUser); 
+      mockedUserService.getUserById.mockResolvedValue(mockSafeUser);
       mockedUserService.getUserByUsernameInternal.mockResolvedValue({ id: 'other-user' } as any); // Conflict
 
       await AdminUserController.updateUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Username already exists' });
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Username already exists',
+      });
     });
-    
-     it('should return 500 if an error occurs', async () => {
+
+    it('should return 500 if an error occurs', async () => {
       req = mockRequest({}, { id: userId }, updateData, mockAdminUser);
       const error = new Error('DB Error');
       mockedUserService.getUserById.mockResolvedValue(mockSafeUser);
@@ -203,85 +230,105 @@ describe('AdminUserController', () => {
       await AdminUserController.updateUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while updating user' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error updating user (admin)' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while updating user',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error updating user (admin)' }),
+      );
     });
   });
 
   // --- deleteUser ---
   describe('deleteUser', () => {
-     const userIdToDelete = 'user-to-delete';
+    const userIdToDelete = 'user-to-delete';
 
-     it('should deactivate user (soft delete) successfully', async () => {
-        req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
-        mockedUserService.deleteUser.mockResolvedValue(true);
+    it('should deactivate user (soft delete) successfully', async () => {
+      req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
+      mockedUserService.deleteUser.mockResolvedValue(true);
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+      await AdminUserController.deleteUser(req as Request, res as Response);
 
-        expect(mockedUserService.deleteUser).toHaveBeenCalledWith(userIdToDelete);
-        expect(mockedUserService.permanentlyDeleteUser).not.toHaveBeenCalled();
-        expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'User deactivated' });
-        expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Admin deactivated user' }));
-     });
-     
-     it('should permanently delete user successfully if permanent=true', async () => {
-        req = mockRequest({ permanent: 'true' }, { id: userIdToDelete }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
-        mockedUserService.permanentlyDeleteUser.mockResolvedValue(true);
+      expect(mockedUserService.deleteUser).toHaveBeenCalledWith(userIdToDelete);
+      expect(mockedUserService.permanentlyDeleteUser).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'User deactivated' });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Admin deactivated user' }),
+      );
+    });
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+    it('should permanently delete user successfully if permanent=true', async () => {
+      req = mockRequest({ permanent: 'true' }, { id: userIdToDelete }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
+      mockedUserService.permanentlyDeleteUser.mockResolvedValue(true);
 
-        expect(mockedUserService.permanentlyDeleteUser).toHaveBeenCalledWith(userIdToDelete);
-        expect(mockedUserService.deleteUser).not.toHaveBeenCalled();
-        expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'User permanently deleted' });
-        expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'Admin permanently deleted user' }));
-     });
-     
-     it('should return 404 if user to delete not found', async () => {
-        req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue(null); // User not found
+      await AdminUserController.deleteUser(req as Request, res as Response);
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+      expect(mockedUserService.permanentlyDeleteUser).toHaveBeenCalledWith(userIdToDelete);
+      expect(mockedUserService.deleteUser).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'User permanently deleted',
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Admin permanently deleted user' }),
+      );
+    });
 
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
-        expect(mockedUserService.deleteUser).not.toHaveBeenCalled();
-        expect(mockedUserService.permanentlyDeleteUser).not.toHaveBeenCalled();
-     });
-     
-     it('should return 400 if admin tries to delete self', async () => {
-        req = mockRequest({}, { id: mockAdminUser.id }, {}, mockAdminUser); // Trying to delete self
-        mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: mockAdminUser.id });
+    it('should return 404 if user to delete not found', async () => {
+      req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue(null); // User not found
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+      await AdminUserController.deleteUser(req as Request, res as Response);
 
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Cannot delete your own account' });
-     });
-     
-     it('should return 500 if service fails to delete', async () => {
-        req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
-        mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
-        mockedUserService.deleteUser.mockResolvedValue(false); // Service returns failure
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
+      expect(mockedUserService.deleteUser).not.toHaveBeenCalled();
+      expect(mockedUserService.permanentlyDeleteUser).not.toHaveBeenCalled();
+    });
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+    it('should return 400 if admin tries to delete self', async () => {
+      req = mockRequest({}, { id: mockAdminUser.id }, {}, mockAdminUser); // Trying to delete self
+      mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: mockAdminUser.id });
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Failed to delete user' });
-     });
-     
-     it('should return 500 if an error occurs', async () => {
-        req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
-        const error = new Error('DB Error');
-        mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
-        mockedUserService.deleteUser.mockRejectedValue(error); // Simulate exception
+      await AdminUserController.deleteUser(req as Request, res as Response);
 
-        await AdminUserController.deleteUser(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Cannot delete your own account',
+      });
+    });
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while deleting user' });
-        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error deleting user (admin)' }));
-     });
+    it('should return 500 if service fails to delete', async () => {
+      req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
+      mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
+      mockedUserService.deleteUser.mockResolvedValue(false); // Service returns failure
+
+      await AdminUserController.deleteUser(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Failed to delete user' });
+    });
+
+    it('should return 500 if an error occurs', async () => {
+      req = mockRequest({}, { id: userIdToDelete }, {}, mockAdminUser);
+      const error = new Error('DB Error');
+      mockedUserService.getUserById.mockResolvedValue({ ...mockSafeUser, id: userIdToDelete });
+      mockedUserService.deleteUser.mockRejectedValue(error); // Simulate exception
+
+      await AdminUserController.deleteUser(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while deleting user',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error deleting user (admin)' }),
+      );
+    });
   });
 });

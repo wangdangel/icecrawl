@@ -11,7 +11,7 @@ class DashboardController {
   constructor() {
     this.initialized = false;
   }
-  
+
   /**
    * Initialize dashboard controller
    */
@@ -22,47 +22,42 @@ class DashboardController {
       await this.loadRecentJobs();
       return;
     }
-    
+
     console.log('Initializing dashboard controller');
-    
+
     // Load initial data
     try {
-      await Promise.all([
-        this.loadDashboardStats(),
-        this.loadRecentJobs()
-      ]);
-      
+      await Promise.all([this.loadDashboardStats(), this.loadRecentJobs()]);
+
       this.initialized = true;
     } catch (error) {
       console.error('Error initializing dashboard:', error);
     }
   }
-  
+
   /**
    * Load dashboard statistics
    */
   async loadDashboardStats() {
     console.log('Loading dashboard statistics');
-    
+
     try {
       const stats = await ApiService.dashboard.getStatistics();
-      
+
       // Update statistics counters
       document.getElementById('stat-total-scrapes').textContent = Number(stats.totalScrapes || 0);
       document.getElementById('stat-favorites').textContent = Number(stats.totalFavorites || 0);
-      
+
       // Calculate pending and failed jobs totals
-      const pendingJobs = 
-        (Number(stats.scrapeJobStats?.pending) || 0) +
-        (Number(stats.crawlJobStats?.pending) || 0);
-      
-      const failedJobs = 
-        (Number(stats.scrapeJobStats?.failed) || 0) +
-        (Number(stats.crawlJobStats?.failed) || 0);
-      
+      const pendingJobs =
+        (Number(stats.scrapeJobStats?.pending) || 0) + (Number(stats.crawlJobStats?.pending) || 0);
+
+      const failedJobs =
+        (Number(stats.scrapeJobStats?.failed) || 0) + (Number(stats.crawlJobStats?.failed) || 0);
+
       document.getElementById('stat-pending-jobs').textContent = pendingJobs;
       document.getElementById('stat-failed-jobs').textContent = failedJobs;
-      
+
       // Create activity chart if data available
       if (Array.isArray(stats.scrapesByDay) && stats.scrapesByDay.length > 0) {
         createActivityChart(stats.scrapesByDay);
@@ -71,20 +66,20 @@ class DashboardController {
         createActivityChart([]);
         console.warn('No scrapesByDay data available for chart');
       }
-      
+
       // Render top domains
       if (Array.isArray(stats.topDomains)) {
         this.renderTopDomains(stats.topDomains);
       } else {
         console.warn('No topDomains data available');
       }
-      
+
       console.log('Successfully loaded dashboard stats');
     } catch (error) {
       console.error('Error loading dashboard statistics:', error);
     }
   }
-  
+
   /**
    * Load recent jobs
    */
@@ -96,21 +91,21 @@ class DashboardController {
       console.error('Error loading recent jobs:', error);
     }
   }
-  
+
   /**
    * Render top domains table
    * @param {Array} domains - Domains data
    */
   renderTopDomains(domains) {
     const topDomainsTable = document.getElementById('top-domains-table');
-    
+
     if (!topDomainsTable) {
       console.error('Top domains table element not found');
       return;
     }
-    
+
     topDomainsTable.innerHTML = '';
-    
+
     if (domains.length === 0) {
       topDomainsTable.innerHTML = `
         <tr>
@@ -120,7 +115,7 @@ class DashboardController {
         </tr>`;
       return;
     }
-    
+
     domains.forEach(domain => {
       topDomainsTable.innerHTML += `
         <tr>
@@ -133,7 +128,7 @@ class DashboardController {
         </tr>`;
     });
   }
-  
+
   /**
    * Render recent jobs table (shows recent scrape, crawl, and forum jobs)
    * @param {Array} jobs - Jobs data

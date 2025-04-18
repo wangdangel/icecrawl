@@ -15,12 +15,12 @@ class ScrapeController {
       total: 0,
       search: '',
       category: '',
-      tag: ''
+      tag: '',
     };
     this.elements = {};
     this.initialized = false;
   }
-  
+
   /**
    * Initialize scrapes controller
    */
@@ -30,13 +30,10 @@ class ScrapeController {
       this.bindEvents();
       this.initialized = true;
     }
-    
-    await Promise.all([
-      this.loadScrapes(),
-      this.loadTags()
-    ]);
+
+    await Promise.all([this.loadScrapes(), this.loadTags()]);
   }
-  
+
   /**
    * Cache DOM elements
    */
@@ -50,23 +47,26 @@ class ScrapeController {
       paginationTotal: document.getElementById('scrapes-pagination-total'),
       searchInput: document.getElementById('search'),
       categorySelect: document.getElementById('category'),
-      tagSelect: document.getElementById('tag')
+      tagSelect: document.getElementById('tag'),
     };
   }
-  
+
   /**
    * Bind event listeners
    */
   bindEvents() {
     // Search input debounced event
     if (this.elements.searchInput) {
-      this.elements.searchInput.addEventListener('input', debounce(() => {
-        this.state.search = this.elements.searchInput.value;
-        this.state.page = 1;
-        this.loadScrapes();
-      }, 300));
+      this.elements.searchInput.addEventListener(
+        'input',
+        debounce(() => {
+          this.state.search = this.elements.searchInput.value;
+          this.state.page = 1;
+          this.loadScrapes();
+        }, 300),
+      );
     }
-    
+
     // Category filter change
     if (this.elements.categorySelect) {
       this.elements.categorySelect.addEventListener('change', () => {
@@ -75,7 +75,7 @@ class ScrapeController {
         this.loadScrapes();
       });
     }
-    
+
     // Tag filter change
     if (this.elements.tagSelect) {
       this.elements.tagSelect.addEventListener('change', () => {
@@ -84,7 +84,7 @@ class ScrapeController {
         this.loadScrapes();
       });
     }
-    
+
     // Pagination
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.addEventListener('click', () => {
@@ -94,7 +94,7 @@ class ScrapeController {
         }
       });
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.addEventListener('click', () => {
         if (this.state.page < Math.ceil(this.state.total / this.state.limit)) {
@@ -104,7 +104,7 @@ class ScrapeController {
       });
     }
   }
-  
+
   /**
    * Load scrapes data
    */
@@ -115,14 +115,14 @@ class ScrapeController {
         limit: this.state.limit,
         search: this.state.search,
         category: this.state.category,
-        tag: this.state.tag
+        tag: this.state.tag,
       };
-      
+
       const result = await ApiService.scrapes.getScrapes(params);
-      
+
       this.state.scrapes = result.scrapes || [];
       this.state.total = result.pagination.total || 0;
-      
+
       this.renderScrapesTable();
       this.renderPagination();
     } catch (error) {
@@ -137,7 +137,7 @@ class ScrapeController {
       }
     }
   }
-  
+
   /**
    * Load tags for filter
    */
@@ -149,7 +149,7 @@ class ScrapeController {
       console.error('Error loading tags:', error);
     }
   }
-  
+
   /**
    * Render scrapes table
    */
@@ -158,9 +158,9 @@ class ScrapeController {
       console.error('Scrapes table element not found');
       return;
     }
-    
+
     this.elements.scrapesTable.innerHTML = '';
-    
+
     if (this.state.scrapes.length === 0) {
       this.elements.scrapesTable.innerHTML = `
         <tr>
@@ -170,7 +170,7 @@ class ScrapeController {
         </tr>`;
       return;
     }
-    
+
     this.state.scrapes.forEach(scrape => {
       this.elements.scrapesTable.innerHTML += `
         <tr>
@@ -203,13 +203,13 @@ class ScrapeController {
           </td>
         </tr>`;
     });
-    
+
     // Add event listeners to action buttons
     this.elements.scrapesTable.querySelectorAll('[data-action]').forEach(button => {
       button.addEventListener('click', e => this.handleScrapeAction(e));
     });
   }
-  
+
   /**
    * Render pagination
    */
@@ -217,45 +217,45 @@ class ScrapeController {
     const totalPages = Math.ceil(this.state.total / this.state.limit);
     const showingStart = this.state.total === 0 ? 0 : (this.state.page - 1) * this.state.limit + 1;
     const showingEnd = Math.min(this.state.page * this.state.limit, this.state.total);
-    
+
     if (this.elements.paginationShowing) {
       this.elements.paginationShowing.textContent = `${showingStart}-${showingEnd}`;
     }
-    
+
     if (this.elements.paginationTotal) {
       this.elements.paginationTotal.textContent = this.state.total;
     }
-    
+
     if (this.elements.paginationCurrent) {
       this.elements.paginationCurrent.textContent = this.state.page;
     }
-    
+
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.disabled = this.state.page <= 1;
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.disabled = this.state.page >= totalPages;
     }
   }
-  
+
   /**
    * Render tags select options
    * @param {Array} tags - Tags data
    */
   renderTagsSelect(tags) {
     const tagSelect = this.elements.tagSelect;
-    
+
     if (!tagSelect) {
       console.error('Tag select element not found');
       return;
     }
-    
+
     // Clear existing options (keep the first "All Tags" option)
     while (tagSelect.options.length > 1) {
       tagSelect.remove(1);
     }
-    
+
     // Add tags as options
     tags.forEach(tag => {
       const option = document.createElement('option');
@@ -264,7 +264,7 @@ class ScrapeController {
       tagSelect.appendChild(option);
     });
   }
-  
+
   /**
    * Handle scrape action (view, favorite, delete)
    * @param {Event} e - Click event
@@ -272,12 +272,14 @@ class ScrapeController {
   async handleScrapeAction(e) {
     const action = e.currentTarget.dataset.action;
     const id = e.currentTarget.dataset.id;
-    
+
     if (action === 'view') {
       window.location.href = `/scrape/${id}`;
     } else if (action === 'favorite') {
       try {
-        const isCurrentlyFavorite = e.currentTarget.querySelector('i').classList.contains('fa-star');
+        const isCurrentlyFavorite = e.currentTarget
+          .querySelector('i')
+          .classList.contains('fa-star');
         await ApiService.scrapes.toggleFavorite(id, !isCurrentlyFavorite);
         await this.loadScrapes(); // Refresh table
       } catch (error) {

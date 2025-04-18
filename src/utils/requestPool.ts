@@ -7,26 +7,26 @@ export class RequestPoolManager {
   private maxConcurrent: number;
   private currentConcurrent: number;
   private queue: Array<() => Promise<void>>;
-  
+
   /**
    * Create a new RequestPoolManager
-   * 
+   *
    * @param maxConcurrent - Maximum number of concurrent requests
    */
   constructor(maxConcurrent = 5) {
     this.maxConcurrent = maxConcurrent;
     this.currentConcurrent = 0;
     this.queue = [];
-    
+
     logger.info({
       message: 'Request pool initialized',
       maxConcurrent,
     });
   }
-  
+
   /**
    * Add a task to the pool
-   * 
+   *
    * @param task - The async task to execute
    * @returns Promise that resolves when the task completes
    */
@@ -48,7 +48,7 @@ export class RequestPoolManager {
           this.processQueue();
         }
       };
-      
+
       // If we can execute immediately, do so
       if (this.currentConcurrent < this.maxConcurrent) {
         wrappedTask().catch(() => {});
@@ -58,7 +58,7 @@ export class RequestPoolManager {
       }
     });
   }
-  
+
   /**
    * Process the next item in the queue if possible
    */
@@ -70,10 +70,10 @@ export class RequestPoolManager {
       }
     }
   }
-  
+
   /**
    * Get the current status of the pool
-   * 
+   *
    * @returns Pool status
    */
   getStatus(): { maxConcurrent: number; currentConcurrent: number; queueLength: number } {

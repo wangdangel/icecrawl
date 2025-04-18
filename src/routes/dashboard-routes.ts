@@ -114,7 +114,7 @@ router.get('/recent-scrapes', authenticate, DashboardController.getRecentScrapes
  *                       type: array
  *                       items:
  *                         # Define scrape item structure here or reference a schema
- *                         type: object 
+ *                         type: object
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -136,7 +136,6 @@ router.get('/recent-scrapes', authenticate, DashboardController.getRecentScrapes
  *         description: Server error
  */
 router.get('/scrapes', authenticate, DashboardController.getAllScrapes); // Use controller method
-
 
 /**
  * @swagger

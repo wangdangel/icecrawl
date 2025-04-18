@@ -58,6 +58,7 @@ model User {
   Dashboard        Dashboard[]
   ApiKey           ApiKey[]
   crawlJobs        CrawlJob[] // Added relation field for CrawlJob
+  cookies          Cookie[]   // Back relation to Cookie model
 }
 
 model Tag {
@@ -141,6 +142,8 @@ model CrawlJob {
 
   scrapedPages ScrapedPage[] // Relation to all pages crawled in this job
   forumPosts   ForumPost[] // Relation to all forum posts crawled in this job
+  useCookies   Boolean?   @default(false)
+  cookieString String?
 
   @@index([status])
   @@index([userId])
@@ -156,4 +159,19 @@ model ForumPost {
   jobId   String?
   crawlJob CrawlJob? @relation(fields: [jobId], references: [id], onDelete: Cascade)
   @@index([jobId])
+}
+
+// New model for storing cookies per domain and user
+model Cookie {
+  id           String   @id @default(uuid())
+  domain       String
+  cookieString String
+  userId       String?  // Optional reference to user
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([domain, userId])
+  @@index([domain])
+  @@index([userId])
 }

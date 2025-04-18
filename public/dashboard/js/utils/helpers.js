@@ -11,15 +11,15 @@
  */
 function truncateUrl(url, maxLength = 40) {
   if (!url) return '';
-  
+
   try {
     const urlObj = new URL(url);
     let displayUrl = urlObj.hostname + urlObj.pathname;
-    
+
     if (displayUrl.length > maxLength) {
       return displayUrl.substring(0, maxLength - 3) + '...';
     }
-    
+
     return displayUrl;
   } catch (e) {
     return url.length > maxLength ? url.substring(0, maxLength - 3) + '...' : url;
@@ -34,13 +34,13 @@ function truncateUrl(url, maxLength = 40) {
  */
 function debounce(func, wait) {
   let timeout;
-  
+
   return function executedFunction(...args) {
     const later = () => {
       timeout = null;
       func(...args);
     };
-    
+
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
@@ -74,7 +74,7 @@ function formatDate(date, format = 'MMM D, YYYY') {
  */
 function escapeHtml(text) {
   if (!text) return '';
-  
+
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -116,9 +116,9 @@ function buildCrawlTree(pages, rootUrl) {
   pages.forEach(p => {
     map[p.url] = { ...p, children: [] };
   });
-  
+
   const treeRoot = { url: rootUrl, children: [] };
-  
+
   Object.values(map).forEach(node => {
     if (node.parentUrl && map[node.parentUrl]) {
       map[node.parentUrl].children.push(node);
@@ -128,7 +128,7 @@ function buildCrawlTree(pages, rootUrl) {
       treeRoot.children.push(node); // Orphan nodes
     }
   });
-  
+
   return treeRoot;
 }
 
@@ -139,23 +139,23 @@ function buildCrawlTree(pages, rootUrl) {
  */
 function renderCrawlTree(node) {
   let html = `<ul>`;
-  
+
   if (node.url) {
     html += `<li><a href="${node.url}" target="_blank">${node.title || node.url}</a>`;
   }
-  
+
   if (node.children && node.children.length > 0) {
     node.children.forEach(child => {
       html += renderCrawlTree(child);
     });
   }
-  
+
   if (node.url) {
     html += `</li>`;
   }
-  
+
   html += `</ul>`;
-  
+
   return html;
 }
 
@@ -167,5 +167,5 @@ export {
   escapeHtml,
   getStatusClass,
   buildCrawlTree,
-  renderCrawlTree
+  renderCrawlTree,
 };

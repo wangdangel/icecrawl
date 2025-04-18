@@ -28,13 +28,10 @@ const localEnvPath = path.resolve(process.cwd(), '.env'); // For local developme
 // Try loading global .env first, then local if global doesn't exist
 if (fs.existsSync(globalEnvPath)) {
   dotenv.config({ path: globalEnvPath });
-  console.log(`[Icecrawl CLI] Loaded global config from: ${globalEnvPath}`);
 } else if (fs.existsSync(localEnvPath)) {
   dotenv.config({ path: localEnvPath });
-  console.log(`[Icecrawl CLI] Loaded local config from: ${localEnvPath}`);
 } else {
-  console.warn('[Icecrawl CLI] Warning: No .env file found in global data directory or current working directory.');
-  // Application might fail if required env vars (like DATABASE_URL) aren't set globally
+  // No .env found; skipping without logging to stdout
 }
 
 // --- Rest of the CLI imports and logic ---
@@ -57,35 +54,77 @@ program
   .option('-s, --silent', 'suppress all output except the result', false);
 
 // Default command: start both servers
-program
-  .action(async () => {
-    console.log('Starting Dashboard server and MCP server...');
-    await Promise.all([
-      (async () => { try { startDashboardServer(); } catch (e) { console.error('Dashboard server error:', e); } })(),
-      (async () => { try { await startMcpServer(); } catch (e) { console.error('MCP server error:', e); } })(),
-    ]);
-  });
+program.action(async () => {
+  const options = program.opts();
+  // Default: if stdin has data, treat as scrape from stdin
+  if (!process.stdin.isTTY) {
+    try {
+      if (!options.silent) console.error(formatLoading('Reading from stdin'));
+      const input = await getInputFromStdin();
+      const url = input.trim();
+      if (!url || !url.startsWith('http'))
+        throw new Error(
+          'Invalid URL provided. Please provide a valid URL starting with http:// or https://',
+        );
+      if (!options.silent) console.error(formatLoading(`Scraping content from ${url}`));
+      const result = await scrapeUrl(url);
+      console.log(formatScrapedData(result, options.format));
+      process.exit(0);
+    } catch (error) {
+      if (!options.silent)
+        console.error(
+          formatError(error instanceof Error ? error : new Error('An unknown error occurred')),
+        );
+      process.exit(1);
+    }
+    return;
+  }
+  // No stdin: start dashboard and MCP servers
+  console.log('Starting Dashboard server and MCP server...');
+  await Promise.all([
+    (async () => {
+      try {
+        startDashboardServer();
+      } catch (e) {
+        console.error('Dashboard server error:', e);
+      }
+    })(),
+    (async () => {
+      try {
+        await startMcpServer();
+      } catch (e) {
+        console.error('MCP server error:', e);
+      }
+    })(),
+  ]);
+});
 
 // Subcommand: scrape (stdin or url)
 const scrapeCmd = program.command('scrape').description('Scrape URLs via stdin or argument');
 
 // Scrape from stdin (default for scrape)
-scrapeCmd
-  .action(async () => {
-    const options = program.opts();
-    try {
-      if (!options.silent) console.error(formatLoading('Reading from stdin'));
-      const input = await getInputFromStdin();
-      const url = input.trim();
-      if (!url || !url.startsWith('http')) throw new Error('Invalid URL provided. Please provide a valid URL starting with http:// or https://');
-      if (!options.silent) console.error(formatLoading(`Scraping content from ${url}`));
-      const result = await scrapeUrl(url);
-      console.log(formatScrapedData(result, options.format));
-    } catch (error) {
-      if (!options.silent) console.error(formatError(error instanceof Error ? error : new Error('An unknown error occurred')));
-      process.exit(1);
-    }
-  });
+scrapeCmd.action(async () => {
+  const options = program.opts();
+  try {
+    if (!options.silent) console.error(formatLoading('Reading from stdin'));
+    const input = await getInputFromStdin();
+    const url = input.trim();
+    if (!url || !url.startsWith('http'))
+      throw new Error(
+        'Invalid URL provided. Please provide a valid URL starting with http:// or https://',
+      );
+    if (!options.silent) console.error(formatLoading(`Scraping content from ${url}`));
+    const result = await scrapeUrl(url);
+    console.log(formatScrapedData(result, options.format));
+    process.exit(0);
+  } catch (error) {
+    if (!options.silent)
+      console.error(
+        formatError(error instanceof Error ? error : new Error('An unknown error occurred')),
+      );
+    process.exit(1);
+  }
+});
 
 // Scrape a specific URL argument
 scrapeCmd
@@ -97,8 +136,32 @@ scrapeCmd
       if (!options.silent) console.error(formatLoading(`Scraping content from ${url}`));
       const result = await scrapeUrl(url);
       console.log(formatScrapedData(result, options.format));
+      process.exit(0);
     } catch (error) {
-      if (!options.silent) console.error(formatError(error instanceof Error ? error : new Error('An unknown error occurred')));
+      if (!options.silent)
+        console.error(
+          formatError(error instanceof Error ? error : new Error('An unknown error occurred')),
+        );
+      process.exit(1);
+    }
+  });
+
+// Root-level URL command for direct CLI invocation
+program
+  .command('url <url>')
+  .description('Scrape a specific URL')
+  .action(async (url: string) => {
+    const options = program.opts();
+    try {
+      if (!options.silent) console.error(formatLoading(`Scraping content from ${url}`));
+      const result = await scrapeUrl(url);
+      console.log(formatScrapedData(result, options.format));
+      process.exit(0);
+    } catch (error) {
+      if (!options.silent)
+        console.error(
+          formatError(error instanceof Error ? error : new Error('An unknown error occurred')),
+        );
       process.exit(1);
     }
   });
@@ -130,7 +193,7 @@ program
   .option('-f, --file <path>', 'Input file path (defaults to stdin if omitted)')
   .option('-c, --config <json>', 'Transformer config as JSON string')
   .option('--step-configs <json>', 'Pipeline step configs as JSON array string')
-  .action(async (opts) => {
+  .action(async opts => {
     const fetch = (await import('node-fetch')).default;
     const apiUrl = process.env.API_URL || 'http://localhost:6971/api/transform';
 

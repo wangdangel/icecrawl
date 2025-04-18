@@ -47,15 +47,15 @@ describe('UserController', () => {
   // --- login ---
   describe('login', () => {
     const loginData = { username: 'testuser', password: 'password123' };
-    const mockSafeUser: SafeUser = { 
-      id: 'user-1', 
-      username: 'testuser', 
-      role: 'user', 
-      email: 'test@example.com', 
-      isActive: true, 
-      createdAt: new Date(), 
-      updatedAt: new Date(), 
-      lastLogin: undefined 
+    const mockSafeUser: SafeUser = {
+      id: 'user-1',
+      username: 'testuser',
+      role: 'user',
+      email: 'test@example.com',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: undefined,
     };
     const mockToken = 'mock-jwt-token';
     const mockSessionToken = 'mock-session-token';
@@ -68,7 +68,10 @@ describe('UserController', () => {
 
       await UserController.login(req as Request, res as Response);
 
-      expect(mockedAuthService.verifyCredentials).toHaveBeenCalledWith(loginData.username, loginData.password);
+      expect(mockedAuthService.verifyCredentials).toHaveBeenCalledWith(
+        loginData.username,
+        loginData.password,
+      );
       expect(mockedAuthService.generateToken).toHaveBeenCalledWith(mockSafeUser);
       expect(mockedSessionService.createSession).toHaveBeenCalledWith(mockSafeUser.id);
       expect(res.json).toHaveBeenCalledWith({
@@ -82,14 +85,18 @@ describe('UserController', () => {
           email: mockSafeUser.email,
         },
       });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'User logged in' }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User logged in' }),
+      );
     });
 
     it('should return 400 for invalid input data', async () => {
       req = mockRequest({ username: 'test' }); // Missing password
       await UserController.login(req as Request, res as Response);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
     });
 
     it('should return 401 for invalid credentials', async () => {
@@ -98,7 +105,10 @@ describe('UserController', () => {
 
       await UserController.login(req as Request, res as Response);
 
-      expect(mockedAuthService.verifyCredentials).toHaveBeenCalledWith(loginData.username, loginData.password);
+      expect(mockedAuthService.verifyCredentials).toHaveBeenCalledWith(
+        loginData.username,
+        loginData.password,
+      );
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
         status: 'error',
@@ -118,105 +128,124 @@ describe('UserController', () => {
         status: 'error',
         message: 'An error occurred during login',
       });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Login error' }));
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Login error' }),
+      );
     });
   });
 
   // --- register ---
   describe('register', () => {
-     const registerData = { username: 'newuser', password: 'password123', email: 'new@example.com' };
-     const mockCreatedUser: SafeUser = { 
-        id: 'user-new', 
-        username: 'newuser', 
-        role: 'user', 
-        email: 'new@example.com', 
-        isActive: true, 
-        createdAt: new Date(), 
-        updatedAt: new Date(), 
-        lastLogin: undefined 
-     };
+    const registerData = { username: 'newuser', password: 'password123', email: 'new@example.com' };
+    const mockCreatedUser: SafeUser = {
+      id: 'user-new',
+      username: 'newuser',
+      role: 'user',
+      email: 'new@example.com',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: undefined,
+    };
 
-     it('should register user successfully', async () => {
-        req = mockRequest(registerData);
-        mockedUserService.getUserByUsernameInternal.mockResolvedValue(null); // No existing username
-        mockedUserService.getUserByEmailInternal.mockResolvedValue(null); // No existing email
-        mockedUserService.createUser.mockResolvedValue(mockCreatedUser);
+    it('should register user successfully', async () => {
+      req = mockRequest(registerData);
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue(null); // No existing username
+      mockedUserService.getUserByEmailInternal.mockResolvedValue(null); // No existing email
+      mockedUserService.createUser.mockResolvedValue(mockCreatedUser);
 
-        await UserController.register(req as Request, res as Response);
+      await UserController.register(req as Request, res as Response);
 
-        expect(mockedUserService.getUserByUsernameInternal).toHaveBeenCalledWith(registerData.username);
-        expect(mockedUserService.getUserByEmailInternal).toHaveBeenCalledWith(registerData.email);
-        expect(mockedUserService.createUser).toHaveBeenCalledWith(registerData);
-        expect(res.status).toHaveBeenCalledWith(201);
-        expect(res.json).toHaveBeenCalledWith({
-            status: 'success',
-            message: 'User registered successfully',
-            user: {
-                id: mockCreatedUser.id,
-                username: mockCreatedUser.username,
-                role: mockCreatedUser.role,
-                email: mockCreatedUser.email,
-            },
-        });
-        expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'User registered' }));
-     });
-     
-     it('should return 400 for invalid input data', async () => {
-        req = mockRequest({ username: 'u', password: 'p' }); // Invalid data
-        await UserController.register(req as Request, res as Response);
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
-     });
-     
-     it('should return 409 if username already exists', async () => {
-        req = mockRequest(registerData);
-        mockedUserService.getUserByUsernameInternal.mockResolvedValue({} as any); // Simulate user found
+      expect(mockedUserService.getUserByUsernameInternal).toHaveBeenCalledWith(
+        registerData.username,
+      );
+      expect(mockedUserService.getUserByEmailInternal).toHaveBeenCalledWith(registerData.email);
+      expect(mockedUserService.createUser).toHaveBeenCalledWith(registerData);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'User registered successfully',
+        user: {
+          id: mockCreatedUser.id,
+          username: mockCreatedUser.username,
+          role: mockCreatedUser.role,
+          email: mockCreatedUser.email,
+        },
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User registered' }),
+      );
+    });
 
-        await UserController.register(req as Request, res as Response);
+    it('should return 400 for invalid input data', async () => {
+      req = mockRequest({ username: 'u', password: 'p' }); // Invalid data
+      await UserController.register(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
+    });
 
-        expect(res.status).toHaveBeenCalledWith(409);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Username already exists' });
-        expect(mockedUserService.createUser).not.toHaveBeenCalled();
-     });
-     
-     it('should return 409 if email already exists', async () => {
-        req = mockRequest(registerData);
-        mockedUserService.getUserByUsernameInternal.mockResolvedValue(null); 
-        mockedUserService.getUserByEmailInternal.mockResolvedValue({} as any); // Simulate email found
+    it('should return 409 if username already exists', async () => {
+      req = mockRequest(registerData);
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue({} as any); // Simulate user found
 
-        await UserController.register(req as Request, res as Response);
+      await UserController.register(req as Request, res as Response);
 
-        expect(res.status).toHaveBeenCalledWith(409);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Email already registered' });
-        expect(mockedUserService.createUser).not.toHaveBeenCalled();
-     });
-     
-     it('should return 500 if an error occurs during registration', async () => {
-        req = mockRequest(registerData);
-        const error = new Error('DB connection error');
-        mockedUserService.getUserByUsernameInternal.mockResolvedValue(null);
-        mockedUserService.getUserByEmailInternal.mockResolvedValue(null);
-        mockedUserService.createUser.mockRejectedValue(error);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Username already exists',
+      });
+      expect(mockedUserService.createUser).not.toHaveBeenCalled();
+    });
 
-        await UserController.register(req as Request, res as Response);
+    it('should return 409 if email already exists', async () => {
+      req = mockRequest(registerData);
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue(null);
+      mockedUserService.getUserByEmailInternal.mockResolvedValue({} as any); // Simulate email found
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred during registration' });
-        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Registration error' }));
-     });
+      await UserController.register(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Email already registered',
+      });
+      expect(mockedUserService.createUser).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 if an error occurs during registration', async () => {
+      req = mockRequest(registerData);
+      const error = new Error('DB connection error');
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue(null);
+      mockedUserService.getUserByEmailInternal.mockResolvedValue(null);
+      mockedUserService.createUser.mockRejectedValue(error);
+
+      await UserController.register(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred during registration',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Registration error' }),
+      );
+    });
   });
 
   // --- getCurrentUser ---
   describe('getCurrentUser', () => {
-    const mockSafeUser: SafeUser = { 
-      id: 'user-1', 
-      username: 'testuser', 
-      role: 'user', 
-      email: 'test@example.com', 
-      isActive: true, 
-      createdAt: new Date(), 
-      updatedAt: new Date(), 
-      lastLogin: undefined 
+    const mockSafeUser: SafeUser = {
+      id: 'user-1',
+      username: 'testuser',
+      role: 'user',
+      email: 'test@example.com',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: undefined,
     };
 
     it('should return current user data if authenticated', async () => {
@@ -241,7 +270,7 @@ describe('UserController', () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'User not found' });
     });
-    
+
     it('should return 500 if an error occurs', async () => {
       req = mockRequest({}, { id: 'user-1' });
       const error = new Error('DB Error');
@@ -250,23 +279,28 @@ describe('UserController', () => {
       await UserController.getCurrentUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while getting user information' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error getting user profile' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while getting user information',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error getting user profile' }),
+      );
     });
   });
 
   // --- updateCurrentUser ---
   describe('updateCurrentUser', () => {
     const updateData = { username: 'updateduser', email: 'updated@example.com' };
-     const mockSafeUser: SafeUser = { 
-      id: 'user-1', 
-      username: 'testuser', 
-      role: 'user', 
-      email: 'test@example.com', 
-      isActive: true, 
-      createdAt: new Date(), 
-      updatedAt: new Date(), 
-      lastLogin: undefined 
+    const mockSafeUser: SafeUser = {
+      id: 'user-1',
+      username: 'testuser',
+      role: 'user',
+      email: 'test@example.com',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: undefined,
     };
     const updatedUser = { ...mockSafeUser, ...updateData };
 
@@ -284,15 +318,19 @@ describe('UserController', () => {
         message: 'User updated successfully',
         user: updatedUser,
       });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'User updated profile' }));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User updated profile' }),
+      );
     });
-    
+
     it('should return 400 for invalid input data', async () => {
-        req = mockRequest({ username: 'u' }, { id: 'user-1' }); // Invalid username length
-        await UserController.updateCurrentUser(req as Request, res as Response);
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
-     });
+      req = mockRequest({ username: 'u' }, { id: 'user-1' }); // Invalid username length
+      await UserController.updateCurrentUser(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
+    });
 
     it('should return 409 if username conflicts with another user', async () => {
       req = mockRequest(updateData, { id: 'user-1' });
@@ -301,32 +339,48 @@ describe('UserController', () => {
       await UserController.updateCurrentUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Username already exists' });
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Username already exists',
+      });
       expect(mockedUserService.updateUser).not.toHaveBeenCalled();
     });
-    
-     it('should return 409 if email conflicts with another user', async () => {
+
+    it('should return 409 if email conflicts with another user', async () => {
       req = mockRequest(updateData, { id: 'user-1' });
-      mockedUserService.getUserByUsernameInternal.mockResolvedValue(null); 
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue(null);
       mockedUserService.getUserByEmailInternal.mockResolvedValue({ id: 'user-2' } as any); // Conflict
 
       await UserController.updateCurrentUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Email already registered' });
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Email already registered',
+      });
       expect(mockedUserService.updateUser).not.toHaveBeenCalled();
     });
-    
+
     it('should allow updating username/email to the same value', async () => {
-       req = mockRequest({ username: 'testuser', email: 'test@example.com' }, { id: 'user-1' });
-       mockedUserService.getUserByUsernameInternal.mockResolvedValue({ ...mockSafeUser, id: 'user-1' } as any); // Found self
-       mockedUserService.getUserByEmailInternal.mockResolvedValue({ ...mockSafeUser, id: 'user-1' } as any); // Found self
-       mockedUserService.updateUser.mockResolvedValue({ ...mockSafeUser, username: 'testuser', email: 'test@example.com' });
+      req = mockRequest({ username: 'testuser', email: 'test@example.com' }, { id: 'user-1' });
+      mockedUserService.getUserByUsernameInternal.mockResolvedValue({
+        ...mockSafeUser,
+        id: 'user-1',
+      } as any); // Found self
+      mockedUserService.getUserByEmailInternal.mockResolvedValue({
+        ...mockSafeUser,
+        id: 'user-1',
+      } as any); // Found self
+      mockedUserService.updateUser.mockResolvedValue({
+        ...mockSafeUser,
+        username: 'testuser',
+        email: 'test@example.com',
+      });
 
-       await UserController.updateCurrentUser(req as Request, res as Response);
+      await UserController.updateCurrentUser(req as Request, res as Response);
 
-       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
-       expect(mockedUserService.updateUser).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+      expect(mockedUserService.updateUser).toHaveBeenCalled();
     });
 
     it('should return 500 if an error occurs', async () => {
@@ -339,8 +393,13 @@ describe('UserController', () => {
       await UserController.updateCurrentUser(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while updating user information' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error updating user profile' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while updating user information',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error updating user profile' }),
+      );
     });
   });
 
@@ -354,29 +413,43 @@ describe('UserController', () => {
 
       await UserController.changePassword(req as Request, res as Response);
 
-      expect(mockedAuthService.changePassword).toHaveBeenCalledWith('user-1', passwordData.currentPassword, passwordData.newPassword);
-      expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'Password changed successfully' });
-      expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'User changed password' }));
+      expect(mockedAuthService.changePassword).toHaveBeenCalledWith(
+        'user-1',
+        passwordData.currentPassword,
+        passwordData.newPassword,
+      );
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Password changed successfully',
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User changed password' }),
+      );
     });
 
     it('should return 400 for invalid input', async () => {
       req = mockRequest({ currentPassword: 'old' }, { id: 'user-1' }); // Missing newPassword
       await UserController.changePassword(req as Request, res as Response);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
     });
 
     it('should return 401 if current password is incorrect', async () => {
       req = mockRequest(passwordData, { id: 'user-1' });
-      mockedAuthService.changePassword.mockResolvedValue({ success: false, message: 'Incorrect password' });
+      mockedAuthService.changePassword.mockResolvedValue({
+        success: false,
+        message: 'Incorrect password',
+      });
 
       await UserController.changePassword(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Incorrect password' });
     });
-    
-     it('should return 500 if an error occurs', async () => {
+
+    it('should return 500 if an error occurs', async () => {
       req = mockRequest(passwordData, { id: 'user-1' });
       const error = new Error('Something went wrong');
       mockedAuthService.changePassword.mockRejectedValue(error);
@@ -384,18 +457,26 @@ describe('UserController', () => {
       await UserController.changePassword(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while changing password' });
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error changing password' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while changing password',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error changing password' }),
+      );
     });
   });
-  
+
   // --- requestPasswordReset ---
   describe('requestPasswordReset', () => {
     const requestData = { email: 'test@example.com' };
 
     it('should return success message', async () => {
       req = mockRequest(requestData);
-      mockedAuthService.createPasswordResetRequest.mockResolvedValue({ success: true, message: '' }); // Message doesn't matter here
+      mockedAuthService.createPasswordResetRequest.mockResolvedValue({
+        success: true,
+        message: '',
+      }); // Message doesn't matter here
 
       await UserController.requestPasswordReset(req as Request, res as Response);
 
@@ -405,119 +486,165 @@ describe('UserController', () => {
         message: 'If a matching account was found, a password reset email has been sent',
       });
     });
-    
-     it('should return 400 for invalid input', async () => {
-      req = mockRequest({ email: 'invalid-email' }); 
+
+    it('should return 400 for invalid input', async () => {
+      req = mockRequest({ email: 'invalid-email' });
       await UserController.requestPasswordReset(req as Request, res as Response);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
     });
-    
-     it('should return 500 if an error occurs', async () => {
+
+    it('should return 500 if an error occurs', async () => {
       req = mockRequest(requestData);
       const error = new Error('Email service down');
-       mockedAuthService.createPasswordResetRequest.mockRejectedValue(error); // Simulate error in service
+      mockedAuthService.createPasswordResetRequest.mockRejectedValue(error); // Simulate error in service
 
       await UserController.requestPasswordReset(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while creating password reset request' });
-       expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error creating password reset request' }));
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while creating password reset request',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error creating password reset request' }),
+      );
     });
   });
-  
+
   // --- resetPassword ---
   describe('resetPassword', () => {
-     const resetData = { token: 'valid-token', newPassword: 'newPassword123' };
+    const resetData = { token: 'valid-token', newPassword: 'newPassword123' };
 
-     it('should reset password successfully', async () => {
-        req = mockRequest(resetData);
-        mockedAuthService.resetPassword.mockResolvedValue({ success: true, message: 'Success' });
+    it('should reset password successfully', async () => {
+      req = mockRequest(resetData);
+      mockedAuthService.resetPassword.mockResolvedValue({ success: true, message: 'Success' });
 
-        await UserController.resetPassword(req as Request, res as Response);
+      await UserController.resetPassword(req as Request, res as Response);
 
-        expect(mockedAuthService.resetPassword).toHaveBeenCalledWith(resetData.token, resetData.newPassword);
-        expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'Password reset successfully' });
-     });
-     
-     it('should return 400 for invalid input', async () => {
-        req = mockRequest({ token: 't' }); // Missing password
-        await UserController.resetPassword(req as Request, res as Response);
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', message: 'Invalid input' }));
-     });
-     
-     it('should return 401 for invalid/expired token', async () => {
-        req = mockRequest(resetData);
-        mockedAuthService.resetPassword.mockResolvedValue({ success: false, message: 'Invalid token' });
+      expect(mockedAuthService.resetPassword).toHaveBeenCalledWith(
+        resetData.token,
+        resetData.newPassword,
+      );
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Password reset successfully',
+      });
+    });
 
-        await UserController.resetPassword(req as Request, res as Response);
+    it('should return 400 for invalid input', async () => {
+      req = mockRequest({ token: 't' }); // Missing password
+      await UserController.resetPassword(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'error', message: 'Invalid input' }),
+      );
+    });
 
-        expect(res.status).toHaveBeenCalledWith(401);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Invalid token' });
-     });
-     
-     it('should return 500 if an error occurs', async () => {
-        req = mockRequest(resetData);
-        const error = new Error('DB error');
-        mockedAuthService.resetPassword.mockRejectedValue(error);
+    it('should return 401 for invalid/expired token', async () => {
+      req = mockRequest(resetData);
+      mockedAuthService.resetPassword.mockResolvedValue({
+        success: false,
+        message: 'Invalid token',
+      });
 
-        await UserController.resetPassword(req as Request, res as Response);
+      await UserController.resetPassword(req as Request, res as Response);
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while resetting password' });
-        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error resetting password' }));
-     });
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Invalid token' });
+    });
+
+    it('should return 500 if an error occurs', async () => {
+      req = mockRequest(resetData);
+      const error = new Error('DB error');
+      mockedAuthService.resetPassword.mockRejectedValue(error);
+
+      await UserController.resetPassword(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while resetting password',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error resetting password' }),
+      );
+    });
   });
-  
+
   // --- logout ---
   describe('logout', () => {
-     it('should logout user successfully', async () => {
-        req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer valid-session-token' });
-        mockedSessionService.invalidateSession.mockReturnValue(true);
+    it('should logout user successfully', async () => {
+      req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer valid-session-token' });
+      mockedSessionService.invalidateSession.mockReturnValue(true);
 
-        UserController.logout(req as Request, res as Response); // Logout is synchronous
+      UserController.logout(req as Request, res as Response); // Logout is synchronous
 
-        expect(mockedSessionService.invalidateSession).toHaveBeenCalledWith('valid-session-token');
-        expect(res.json).toHaveBeenCalledWith({ status: 'success', message: 'Logged out successfully' });
-        expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: 'User logged out' }));
-     });
-     
-     it('should return 401 if no auth header', () => {
-         req = mockRequest({}, { id: 'user-1' }, {}); // No auth header
-         UserController.logout(req as Request, res as Response);
-         expect(res.status).toHaveBeenCalledWith(401);
-         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Not authenticated or session token missing' }));
-     });
-     
-      it('should return 401 if auth header is not Bearer', () => {
-         req = mockRequest({}, { id: 'user-1' }, { authorization: 'Basic abc' }); 
-         UserController.logout(req as Request, res as Response);
-         expect(res.status).toHaveBeenCalledWith(401);
-         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Not authenticated or session token missing' }));
-     });
-     
-     it('should return 400 if session invalidation fails', () => {
-         req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer invalid-token' });
-         mockedSessionService.invalidateSession.mockReturnValue(false); // Simulate failure
+      expect(mockedSessionService.invalidateSession).toHaveBeenCalledWith('valid-session-token');
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Logged out successfully',
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User logged out' }),
+      );
+    });
 
-         UserController.logout(req as Request, res as Response);
+    it('should return 401 if no auth header', () => {
+      req = mockRequest({}, { id: 'user-1' }, {}); // No auth header
+      UserController.logout(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Not authenticated or session token missing' }),
+      );
+    });
 
-         expect(res.status).toHaveBeenCalledWith(400);
-         expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Failed to invalidate session or session already invalid' });
-         expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ message: 'Logout attempt with invalid or already invalidated token' }));
-     });
-     
-      it('should return 500 if an error occurs', () => {
-         req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer valid-token' });
-         const error = new Error('Session service error');
-         mockedSessionService.invalidateSession.mockImplementation(() => { throw error; });
+    it('should return 401 if auth header is not Bearer', () => {
+      req = mockRequest({}, { id: 'user-1' }, { authorization: 'Basic abc' });
+      UserController.logout(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Not authenticated or session token missing' }),
+      );
+    });
 
-         UserController.logout(req as Request, res as Response);
+    it('should return 400 if session invalidation fails', () => {
+      req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer invalid-token' });
+      mockedSessionService.invalidateSession.mockReturnValue(false); // Simulate failure
 
-         expect(res.status).toHaveBeenCalledWith(500);
-         expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'An error occurred while logging out' });
-         expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Error logging out' }));
-     });
+      UserController.logout(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Failed to invalidate session or session already invalid',
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Logout attempt with invalid or already invalidated token',
+        }),
+      );
+    });
+
+    it('should return 500 if an error occurs', () => {
+      req = mockRequest({}, { id: 'user-1' }, { authorization: 'Bearer valid-token' });
+      const error = new Error('Session service error');
+      mockedSessionService.invalidateSession.mockImplementation(() => {
+        throw error;
+      });
+
+      UserController.logout(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'An error occurred while logging out',
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Error logging out' }),
+      );
+    });
   });
 });

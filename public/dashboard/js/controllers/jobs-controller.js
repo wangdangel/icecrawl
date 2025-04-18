@@ -13,12 +13,12 @@ class JobsController {
       page: 1,
       limit: 10,
       total: 0,
-      status: ''
+      status: '',
     };
     this.elements = {};
     this.initialized = false;
   }
-  
+
   /**
    * Initialize jobs controller
    */
@@ -28,10 +28,10 @@ class JobsController {
       this.bindEvents();
       this.initialized = true;
     }
-    
+
     await this.loadJobs();
   }
-  
+
   /**
    * Cache DOM elements
    */
@@ -44,10 +44,10 @@ class JobsController {
       paginationShowing: document.getElementById('jobs-pagination-showing'),
       paginationTotal: document.getElementById('jobs-pagination-total'),
       statusFilter: document.getElementById('status-filter'),
-      scheduleJobButton: document.getElementById('schedule-job-button')
+      scheduleJobButton: document.getElementById('schedule-job-button'),
     };
   }
-  
+
   /**
    * Bind event listeners
    */
@@ -60,7 +60,7 @@ class JobsController {
         this.loadJobs();
       });
     }
-    
+
     // Pagination
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.addEventListener('click', () => {
@@ -70,7 +70,7 @@ class JobsController {
         }
       });
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.addEventListener('click', () => {
         if (this.state.page < Math.ceil(this.state.total / this.state.limit)) {
@@ -79,7 +79,7 @@ class JobsController {
         }
       });
     }
-    
+
     // Schedule job button
     if (this.elements.scheduleJobButton) {
       this.elements.scheduleJobButton.addEventListener('click', () => {
@@ -88,7 +88,7 @@ class JobsController {
       });
     }
   }
-  
+
   /**
    * Load jobs data
    */
@@ -97,14 +97,14 @@ class JobsController {
       const params = {
         page: this.state.page,
         limit: this.state.limit,
-        status: this.state.status
+        status: this.state.status,
       };
-      
+
       const result = await ApiService.jobs.getJobs(params);
-      
+
       this.state.jobs = result.jobs || [];
       this.state.total = result.pagination.total || 0;
-      
+
       this.renderJobsTable();
       this.renderPagination();
     } catch (error) {
@@ -119,7 +119,7 @@ class JobsController {
       }
     }
   }
-  
+
   /**
    * Render jobs table
    */
@@ -128,9 +128,9 @@ class JobsController {
       console.error('Jobs table element not found');
       return;
     }
-    
+
     this.elements.jobsTable.innerHTML = '';
-    
+
     if (this.state.jobs.length === 0) {
       this.elements.jobsTable.innerHTML = `
         <tr>
@@ -140,10 +140,10 @@ class JobsController {
         </tr>`;
       return;
     }
-    
+
     this.state.jobs.forEach(job => {
       const statusClass = getStatusClass(job.status);
-      
+
       this.elements.jobsTable.innerHTML += `
         <tr>
           <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
@@ -163,31 +163,37 @@ class JobsController {
             ${job.endTime ? formatDate(job.endTime, 'MMM D, YYYY HH:mm') : '-'}
           </td>
           <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-            ${job.status === 'completed' ? 
-              `<a href="/scrape/${job.resultId}" class="text-indigo-600 hover:text-indigo-900 mr-2">
+            ${
+              job.status === 'completed'
+                ? `<a href="/scrape/${job.resultId}" class="text-indigo-600 hover:text-indigo-900 mr-2">
                 <i class="fas fa-eye"></i> View
-              </a>` : ''}
-            ${job.status === 'failed' ? 
-              `<button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="retry">
+              </a>`
+                : ''
+            }
+            ${
+              job.status === 'failed'
+                ? `<button class="text-indigo-600 hover:text-indigo-900 mr-2" data-id="${job.id}" data-action="retry">
                 <i class="fas fa-redo"></i> Retry
-              </button>` : ''}
+              </button>`
+                : ''
+            }
             <button class="text-red-600 hover:text-red-900" data-id="${job.id}" data-action="delete-job">
               <i class="fas fa-trash"></i>
             </button>
           </td>
         </tr>`;
     });
-    
+
     // Add event listeners to action buttons
     this.elements.jobsTable.querySelectorAll('[data-action="retry"]').forEach(button => {
       button.addEventListener('click', e => this.handleJobRetry(e));
     });
-    
+
     this.elements.jobsTable.querySelectorAll('[data-action="delete-job"]').forEach(button => {
       button.addEventListener('click', e => this.handleJobDelete(e));
     });
   }
-  
+
   /**
    * Render pagination
    */
@@ -195,35 +201,35 @@ class JobsController {
     const totalPages = Math.ceil(this.state.total / this.state.limit);
     const showingStart = this.state.total === 0 ? 0 : (this.state.page - 1) * this.state.limit + 1;
     const showingEnd = Math.min(this.state.page * this.state.limit, this.state.total);
-    
+
     if (this.elements.paginationShowing) {
       this.elements.paginationShowing.textContent = `${showingStart}-${showingEnd}`;
     }
-    
+
     if (this.elements.paginationTotal) {
       this.elements.paginationTotal.textContent = this.state.total;
     }
-    
+
     if (this.elements.paginationCurrent) {
       this.elements.paginationCurrent.textContent = this.state.page;
     }
-    
+
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.disabled = this.state.page <= 1;
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.disabled = this.state.page >= totalPages;
     }
   }
-  
+
   /**
    * Handle job retry
    * @param {Event} e - Click event
    */
   async handleJobRetry(e) {
     const id = e.currentTarget.dataset.id;
-    
+
     try {
       await ApiService.jobs.retryJob(id);
       await this.loadJobs(); // Refresh jobs table
@@ -232,14 +238,14 @@ class JobsController {
       alert(`Error: ${error.message}`);
     }
   }
-  
+
   /**
    * Handle job delete
    * @param {Event} e - Click event
    */
   async handleJobDelete(e) {
     const id = e.currentTarget.dataset.id;
-    
+
     if (confirm('Are you sure you want to delete this job?')) {
       try {
         await ApiService.jobs.deleteJob(id);

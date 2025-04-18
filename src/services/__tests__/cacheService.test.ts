@@ -1,6 +1,12 @@
-import NodeCache from 'node-cache';
-import { CacheService } from '../cacheService';
 import logger from '../../utils/logger';
+// Mock logger to capture debug, info, error, and warn calls
+jest.mock('../../utils/logger', () => ({
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+}));
+import { CacheService, setCacheInstance } from '../cacheService';
 
 // Mock the NodeCache module
 const mockNodeCacheInstance = {
@@ -10,17 +16,6 @@ const mockNodeCacheInstance = {
   flushAll: jest.fn(),
   getStats: jest.fn(),
 };
-jest.mock('node-cache', () => {
-  return jest.fn().mockImplementation(() => mockNodeCacheInstance);
-});
-
-// Mock the logger
-jest.mock('../../utils/logger', () => ({
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
-}));
 
 describe('CacheService', () => {
   beforeEach(() => {
@@ -32,6 +27,8 @@ describe('CacheService', () => {
     mockNodeCacheInstance.del.mockClear();
     mockNodeCacheInstance.flushAll.mockClear();
     mockNodeCacheInstance.getStats.mockClear();
+    // Use mock cache instance for CacheService
+    setCacheInstance(mockNodeCacheInstance);
   });
 
   describe('get', () => {
@@ -86,7 +83,9 @@ describe('CacheService', () => {
 
       expect(success).toBe(true);
       expect(mockNodeCacheInstance.set).toHaveBeenCalledWith(key, value); // No TTL passed
-      expect(logger.debug).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cache set', key, ttl: 'default', success: true }));
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Cache set', key, ttl: 'default', success: true }),
+      );
     });
 
     it('should set value with specified TTL', () => {
@@ -99,7 +98,9 @@ describe('CacheService', () => {
 
       expect(success).toBe(true);
       expect(mockNodeCacheInstance.set).toHaveBeenCalledWith(key, value, ttl); // TTL passed
-      expect(logger.debug).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cache set', key, ttl, success: true }));
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Cache set', key, ttl, success: true }),
+      );
     });
 
     it('should return false and log error if NodeCache throws', () => {
@@ -170,17 +171,17 @@ describe('CacheService', () => {
     });
 
     it('should log error if NodeCache throws', () => {
-       const error = new Error('Cache flush internal error');
-       mockNodeCacheInstance.flushAll.mockImplementation(() => {
-         throw error;
-       });
+      const error = new Error('Cache flush internal error');
+      mockNodeCacheInstance.flushAll.mockImplementation(() => {
+        throw error;
+      });
 
-       CacheService.clear();
+      CacheService.clear();
 
-       expect(logger.error).toHaveBeenCalledWith({
-         message: 'Cache clear error',
-         error: error.message,
-       });
+      expect(logger.error).toHaveBeenCalledWith({
+        message: 'Cache clear error',
+        error: error.message,
+      });
     });
   });
 

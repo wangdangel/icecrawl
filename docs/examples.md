@@ -7,4 +7,3 @@ This document provides examples of common use cases for both the API and CLI int
 ### Basic URL Scraping
 
 Retrieve content from a URL:
-

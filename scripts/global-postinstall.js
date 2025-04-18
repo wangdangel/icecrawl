@@ -68,12 +68,15 @@ function getPrismaBinPath() {
     const binDefinition = prismaPkgJson.bin;
 
     // 4. Determine the relative script path from the 'bin' definition
-    const binScript = typeof binDefinition === 'string'
-      ? binDefinition // If 'bin' is just a string path
-      : binDefinition?.prisma; // If 'bin' is an object, get the path associated with the 'prisma' command key
+    const binScript =
+      typeof binDefinition === 'string'
+        ? binDefinition // If 'bin' is just a string path
+        : binDefinition?.prisma; // If 'bin' is an object, get the path associated with the 'prisma' command key
 
     if (!binScript) {
-      throw new Error("Could not determine Prisma binary script path from its package.json 'bin' field.");
+      throw new Error(
+        "Could not determine Prisma binary script path from its package.json 'bin' field.",
+      );
     }
 
     // 5. Construct the absolute path to the binary script file
@@ -81,10 +84,9 @@ function getPrismaBinPath() {
     const absoluteBinPath = path.resolve(prismaPackageDir, binScript);
 
     return absoluteBinPath;
-
   } catch (err) {
     // Log error if resolution fails (e.g., prisma not installed correctly)
-    console.error("Error trying to locate the installed Prisma CLI:", err);
+    console.error('Error trying to locate the installed Prisma CLI:', err);
     return null; // Indicate failure to find the path
   }
 }
@@ -146,7 +148,7 @@ LOG_LEVEL=info            # Default logging level
   if (!prismaBinPath || !fs.existsSync(prismaBinPath)) {
     console.error(`Error: Could not find or access the installed Prisma CLI binary.`);
     console.error(`Attempted path resolution result: ${prismaBinPath || 'Could not resolve'}`);
-    console.error('Ensure Prisma is listed as a dependency in icecrawl\'s package.json.');
+    console.error("Ensure Prisma is listed as a dependency in icecrawl's package.json.");
     process.exit(1); // Exit with error if Prisma CLI can't be found
   }
   console.log(`Using Prisma binary found at: ${prismaBinPath}`);
@@ -160,13 +162,19 @@ LOG_LEVEL=info            # Default logging level
   // This is crucial to generate the client code needed by the seed script
   console.log('Generating Prisma Client...');
   // Run this relative to the package root, providing the schema path explicitly
-  run(`node "${prismaBinPath}" generate --schema="${prismaSchemaPath}"`, { cwd: globalPackageRoot });
+  run(`node "${prismaBinPath}" generate --schema="${prismaSchemaPath}"`, {
+    cwd: globalPackageRoot,
+  });
 
   // --- Step 8: Run Database Seeding ---
   if (!fs.existsSync(compiledSeedScriptPath)) {
     // Warn but don't fail if the compiled seed script is missing
-    console.warn(`Warning: Compiled seed script not found at ${compiledSeedScriptPath}. Skipping database seeding.`);
-    console.warn(`Ensure 'prisma/seed.ts' is compiled to 'prisma/seed.js' during the 'npm run build' process.`);
+    console.warn(
+      `Warning: Compiled seed script not found at ${compiledSeedScriptPath}. Skipping database seeding.`,
+    );
+    console.warn(
+      `Ensure 'prisma/seed.ts' is compiled to 'prisma/seed.js' during the 'npm run build' process.`,
+    );
   } else {
     console.log('Seeding initial database data (if applicable)...');
     // Run the seed script *within* the data directory so it uses the correct .env/database

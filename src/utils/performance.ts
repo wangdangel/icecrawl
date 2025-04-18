@@ -5,19 +5,19 @@ import logger from './logger';
  */
 export class PerformanceMonitor {
   private static timers: Record<string, number> = {};
-  
+
   /**
    * Start a performance timer
-   * 
+   *
    * @param label - Timer label
    */
   static start(label: string): void {
     this.timers[label] = Date.now();
   }
-  
+
   /**
    * End a performance timer and log the result
-   * 
+   *
    * @param label - Timer label
    * @param additionalInfo - Additional information to log
    * @returns Duration in milliseconds
@@ -31,32 +31,32 @@ export class PerformanceMonitor {
       });
       return 0;
     }
-    
+
     const duration = Date.now() - startTime;
     delete this.timers[label];
-    
+
     logger.debug({
       message: 'Performance measurement',
       label,
       duration: `${duration}ms`,
       ...additionalInfo,
     });
-    
+
     return duration;
   }
-  
+
   /**
    * Measure the execution time of an async function
-   * 
+   *
    * @param label - Timer label
    * @param fn - Function to measure
    * @param additionalInfo - Additional information to log
    * @returns Result of the function
    */
   static async measure<T>(
-    label: string, 
-    fn: () => Promise<T>, 
-    additionalInfo: Record<string, unknown> = {}
+    label: string,
+    fn: () => Promise<T>,
+    additionalInfo: Record<string, unknown> = {},
   ): Promise<T> {
     this.start(label);
     try {

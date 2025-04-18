@@ -71,10 +71,10 @@ cat urls.txt | icecrawl scrape
 
 ## Output Formats
 
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--format` | `-f` | Output format (`pretty`, `json`, `minimal`) | `pretty` |
-| `--silent` | `-s` | Suppress progress messages | `false` |
+| Option     | Alias | Description                                 | Default  |
+| ---------- | ----- | ------------------------------------------- | -------- |
+| `--format` | `-f`  | Output format (`pretty`, `json`, `minimal`) | `pretty` |
+| `--silent` | `-s`  | Suppress progress messages                  | `false`  |
 
 ---
 

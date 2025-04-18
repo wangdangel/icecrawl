@@ -30,7 +30,11 @@ export class SessionService {
       };
 
       // Use SESSION_EXPIRY in seconds for CacheService TTL
-      const success = CacheService.set(`session_${sessionToken}`, sessionData, SESSION_EXPIRY / 1000);
+      const success = CacheService.set(
+        `session_${sessionToken}`,
+        sessionData,
+        SESSION_EXPIRY / 1000,
+      );
 
       if (!success) {
         logger.error({ message: 'Failed to store session in cache', userId });
@@ -65,13 +69,20 @@ export class SessionService {
       // Get session from cache
       const sessionData = CacheService.get<SessionData>(`session_${sessionToken}`);
       if (!sessionData) {
-        logger.debug({ message: 'Session validation failed: Token not found in cache', token: sessionToken });
+        logger.debug({
+          message: 'Session validation failed: Token not found in cache',
+          token: sessionToken,
+        });
         return null;
       }
 
       // Check if session has expired
       if (new Date(sessionData.expiry) < new Date()) {
-        logger.debug({ message: 'Session validation failed: Token expired', token: sessionToken, userId: sessionData.userId });
+        logger.debug({
+          message: 'Session validation failed: Token expired',
+          token: sessionToken,
+          userId: sessionData.userId,
+        });
         CacheService.delete(`session_${sessionToken}`); // Clean up expired token
         return null;
       }
@@ -79,13 +90,21 @@ export class SessionService {
       // Check if the associated user is still active
       const user = await UserService.getUserById(sessionData.userId);
       if (!user || !user.isActive) {
-        logger.warn({ message: 'Session validation failed: User not found or inactive', token: sessionToken, userId: sessionData.userId });
+        logger.warn({
+          message: 'Session validation failed: User not found or inactive',
+          token: sessionToken,
+          userId: sessionData.userId,
+        });
         CacheService.delete(`session_${sessionToken}`); // Clean up token for inactive/deleted user
         return null;
       }
 
       // Session is valid
-      logger.debug({ message: 'Session validated successfully', token: sessionToken, userId: sessionData.userId });
+      logger.debug({
+        message: 'Session validated successfully',
+        token: sessionToken,
+        userId: sessionData.userId,
+      });
       return sessionData.userId;
     } catch (error) {
       logger.error({
@@ -109,7 +128,10 @@ export class SessionService {
       if (deleted) {
         logger.info({ message: 'Session invalidated successfully', token: sessionToken });
       } else {
-        logger.warn({ message: 'Attempted to invalidate non-existent session', token: sessionToken });
+        logger.warn({
+          message: 'Attempted to invalidate non-existent session',
+          token: sessionToken,
+        });
       }
       return deleted;
     } catch (error) {

@@ -14,44 +14,44 @@ const ApiService = {
    */
   async request(url, options = {}) {
     const token = AuthService.getToken();
-    
+
     // Set default headers
     const headers = {
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
     };
-    
+
     // For POST/PUT requests, set content type if not specified
     if (['POST', 'PUT'].includes(options.method) && !options.headers?.['Content-Type']) {
       headers['Content-Type'] = 'application/json';
     }
-    
+
     try {
       const response = await fetch(url, {
         ...options,
-        headers
+        headers,
       });
-      
+
       // Handle unauthorized (expired token)
       if (response.status === 401) {
         AuthService.logout();
         throw new Error('Session expired. Please login again.');
       }
-      
+
       // Parse JSON response
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || `Error: ${response.status}`);
       }
-      
+
       return result;
     } catch (error) {
       console.error(`API Error (${url}):`, error);
       throw error;
     }
   },
-  
+
   /**
    * Dashboard API methods
    */
@@ -63,11 +63,11 @@ const ApiService = {
     async getStatistics() {
       const cacheBuster = new Date().getTime();
       const result = await ApiService.request(`/api/dashboard/statistics?_=${cacheBuster}`, {
-        cache: 'no-store'
+        cache: 'no-store',
       });
       return result.data;
     },
-    
+
     /**
      * Get recent scrapes
      * @param {number} limit - Number of scrapes to fetch
@@ -77,7 +77,7 @@ const ApiService = {
       const result = await ApiService.request(`/api/dashboard/recent-scrapes?limit=${limit}`);
       return result.data.scrapes;
     },
-    
+
     /**
      * Get recent jobs (scrape, crawl, forum)
      * @param {number} limit - Number of jobs to fetch
@@ -87,7 +87,7 @@ const ApiService = {
       const result = await ApiService.request(`/api/dashboard/recent-jobs?limit=${limit}`);
       return result.data.jobs;
     },
-    
+
     /**
      * Get available tags
      * @returns {Promise<Array>} Tags
@@ -95,9 +95,9 @@ const ApiService = {
     async getTags() {
       const result = await ApiService.request('/api/dashboard/tags');
       return result.data.tags;
-    }
+    },
   },
-  
+
   /**
    * Scrapes API methods
    */
@@ -112,11 +112,11 @@ const ApiService = {
       Object.entries(params).forEach(([key, value]) => {
         if (value) queryParams.set(key, value);
       });
-      
+
       const result = await ApiService.request(`/api/dashboard/scrapes?${queryParams.toString()}`);
       return result.data;
     },
-    
+
     /**
      * Toggle favorite status of a scrape
      * @param {string} id - Scrape ID
@@ -126,11 +126,11 @@ const ApiService = {
     async toggleFavorite(id, isFavorite) {
       const result = await ApiService.request(`/api/dashboard/scrape/${id}/favorite`, {
         method: 'POST',
-        body: JSON.stringify({ isFavorite })
+        body: JSON.stringify({ isFavorite }),
       });
       return result.data;
     },
-    
+
     /**
      * Delete a scrape
      * @param {string} id - Scrape ID
@@ -138,11 +138,11 @@ const ApiService = {
      */
     async deleteScrape(id) {
       const result = await ApiService.request(`/api/dashboard/scrape/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       return result.data;
     },
-    
+
     /**
      * Create a new scrape
      * @param {Object} scrapeData - Scrape data
@@ -151,12 +151,12 @@ const ApiService = {
     async createScrape(scrapeData) {
       const result = await ApiService.request('/api/scrape', {
         method: 'POST',
-        body: JSON.stringify(scrapeData)
+        body: JSON.stringify(scrapeData),
       });
       return result.data;
-    }
+    },
   },
-  
+
   /**
    * Scrape Jobs API methods
    */
@@ -171,11 +171,13 @@ const ApiService = {
       Object.entries(params).forEach(([key, value]) => {
         if (value) queryParams.set(key, value);
       });
-      
-      const result = await ApiService.request(`/api/dashboard/scrape-jobs?${queryParams.toString()}`);
+
+      const result = await ApiService.request(
+        `/api/dashboard/scrape-jobs?${queryParams.toString()}`,
+      );
       return result.data;
     },
-    
+
     /**
      * Retry a failed job
      * @param {string} id - Job ID
@@ -183,11 +185,11 @@ const ApiService = {
      */
     async retryJob(id) {
       const result = await ApiService.request(`/api/dashboard/scrape-job/${id}/retry`, {
-        method: 'POST'
+        method: 'POST',
       });
       return result.data;
     },
-    
+
     /**
      * Delete a job
      * @param {string} id - Job ID
@@ -195,12 +197,12 @@ const ApiService = {
      */
     async deleteJob(id) {
       const result = await ApiService.request(`/api/dashboard/scrape-job/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       return result.data;
-    }
+    },
   },
-  
+
   /**
    * Crawl Jobs API methods
    */
@@ -215,11 +217,13 @@ const ApiService = {
       Object.entries(params).forEach(([key, value]) => {
         if (value) queryParams.set(key, value);
       });
-      
-      const result = await ApiService.request(`/api/dashboard/crawl-jobs?${queryParams.toString()}`);
+
+      const result = await ApiService.request(
+        `/api/dashboard/crawl-jobs?${queryParams.toString()}`,
+      );
       return result.data;
     },
-    
+
     /**
      * Get details for a specific crawl job
      * @param {string} id - Crawl job ID
@@ -229,7 +233,7 @@ const ApiService = {
       const result = await ApiService.request(`/api/crawl/${id}`);
       return result.data;
     },
-    
+
     /**
      * Delete a crawl job
      * @param {string} id - Crawl job ID
@@ -237,11 +241,11 @@ const ApiService = {
      */
     async deleteCrawlJob(id) {
       const result = await ApiService.request(`/api/crawl/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       return result.data;
     },
-    
+
     /**
      * Create a new crawl job
      * @param {Object} crawlData - Crawl data
@@ -250,11 +254,11 @@ const ApiService = {
     async createCrawlJob(crawlData) {
       const result = await ApiService.request('/api/crawl', {
         method: 'POST',
-        body: JSON.stringify(crawlData)
+        body: JSON.stringify(crawlData),
       });
       return result.data;
     },
-    
+
     /**
      * Cancel a crawl job
      * @param {string} id - Crawl job ID
@@ -262,12 +266,12 @@ const ApiService = {
      */
     async cancelCrawlJob(id) {
       const result = await ApiService.request(`/api/crawl/${id}/cancel`, {
-        method: 'POST'
+        method: 'POST',
       });
       return result;
     },
   },
-  
+
   /**
    * Transformers API methods
    */
@@ -280,7 +284,7 @@ const ApiService = {
       const result = await ApiService.request('/api/transform/transformers');
       return result.data;
     },
-    
+
     /**
      * Apply a transformer
      * @param {string} transformerName - Transformer name
@@ -288,13 +292,16 @@ const ApiService = {
      * @returns {Promise<Object>} Transformation result
      */
     async applyTransformer(transformerName, data) {
-      const result = await ApiService.request(`/api/transform/transformers/${encodeURIComponent(transformerName)}/apply`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      const result = await ApiService.request(
+        `/api/transform/transformers/${encodeURIComponent(transformerName)}/apply`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+      );
       return result.data;
-    }
-  }
+    },
+  },
 };
 
 export default ApiService;

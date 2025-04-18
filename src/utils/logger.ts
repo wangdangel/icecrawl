@@ -14,18 +14,18 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
   ),
   defaultMeta: { service: 'webscraper' },
   transports: [
     // Write to all logs with level 'info' and below to combined.log
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logsDir, 'combined.log'),
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
     // Write all logs with level 'error' and below to error.log
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
@@ -40,13 +40,15 @@ const isCliProcess = scriptPath && (scriptPath.endsWith('cli.ts') || scriptPath.
 
 // If we're not in production AND it's not the CLI process, log to the console with JSON format
 if (process.env.NODE_ENV !== 'production' && !isCliProcess) {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.timestamp(), // Add timestamp to console
-      winston.format.errors({ stack: true }), // Ensure errors are logged properly
-      winston.format.json() // Use JSON format for console as well
-    ),
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp(), // Add timestamp to console
+        winston.format.errors({ stack: true }), // Ensure errors are logged properly
+        winston.format.json(), // Use JSON format for console as well
+      ),
+    }),
+  );
 }
 
 export default logger;

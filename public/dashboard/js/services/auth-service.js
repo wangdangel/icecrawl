@@ -11,12 +11,12 @@ const AuthService = {
   checkAuth() {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    
+
     if (!token || !user) {
       window.location.href = '/login';
       return false;
     }
-    
+
     try {
       // Set user initials in the UI
       const userObj = JSON.parse(user);
@@ -31,7 +31,7 @@ const AuthService = {
       return false;
     }
   },
-  
+
   /**
    * Get current user data
    * @returns {Object|null} User data object or null if not authenticated
@@ -40,7 +40,7 @@ const AuthService = {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
-  
+
   /**
    * Get authentication token
    * @returns {string|null} Auth token or null if not authenticated
@@ -48,7 +48,7 @@ const AuthService = {
   getToken() {
     return localStorage.getItem('token');
   },
-  
+
   /**
    * Log out the current user
    */
@@ -56,7 +56,7 @@ const AuthService = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
-  }
+  },
 };
 
 // Make AuthService available globally

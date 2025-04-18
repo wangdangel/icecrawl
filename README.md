@@ -20,7 +20,7 @@ A powerful web scraping application offering multiple interfaces: HTTP API (with
 - **Performance Optimization**: Caching, request pooling.
 - **Proxy Support**: Use proxies for requests.
 - **JS Rendering**: Optional headless browser usage via Puppeteer.
-- *And more: Content Transformation, Exporting, Scheduled Jobs...*
+- _And more: Content Transformation, Exporting, Scheduled Jobs..._
 
 ### Sitemap Generation Mode
 
@@ -111,15 +111,15 @@ If you successfully install globally (`npm install -g icecrawl`) but get a **Per
 
 1. Find your global npm bin directory:
 
-    ```bash
-    npm bin -g
-    ```
+   ```bash
+   npm bin -g
+   ```
 
 2. Run the following command, replacing the path with the one found above:
 
-    ```bash
-    chmod +x /path/to/your/global/bin/icecrawl
-    ```
+   ```bash
+   chmod +x /path/to/your/global/bin/icecrawl
+   ```
 
 This should resolve the permission issue.
 
@@ -147,9 +147,9 @@ Add this to your MCP client configuration (e.g., Cline):
 
 For initial access after seeding:
 
-| Username | Password  | Email               | Role  |
-|-----------|-----------|---------------------|--------|
-| admin     | password  | admin@example.com   | admin  |
+| Username | Password | Email             | Role  |
+| -------- | -------- | ----------------- | ----- |
+| admin    | password | admin@example.com | admin |
 
 ---
 
@@ -167,19 +167,19 @@ npm run prisma:studio
 
 ## Project Structure
 
-*To be documented.*
+_To be documented._
 
 ## CI/CD Workflow
 
-*To be documented.*
+_To be documented._
 
 ## Contribution Guidelines
 
-*To be documented.*
+_To be documented._
 
 ## Releasing
 
-*To be documented.*
+_To be documented._
 
 ---
 

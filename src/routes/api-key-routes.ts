@@ -30,7 +30,7 @@ const createApiKeySchema = z.object({
 router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const apiKeys = await ApiKeyService.getApiKeysForUser(req.user!.id);
-    
+
     // Remove actual key from response for security
     const safeApiKeys = apiKeys.map(key => {
       const { key: actualKey, ...safeKey } = key;
@@ -40,7 +40,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         keyPreview: actualKey.substring(0, 4) + '...' + actualKey.substring(actualKey.length - 4),
       };
     });
-    
+
     res.json({
       status: 'success',
       data: {
@@ -53,7 +53,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
       userId: req.user?.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to get API keys',
@@ -104,16 +104,16 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
         details: parsedInput.error.format(),
       });
     }
-    
+
     const { name, permissions } = parsedInput.data;
-    
+
     // Create API key
     const apiKey = await ApiKeyService.createApiKey({
       name,
       userId: req.user!.id,
       permissions,
     });
-    
+
     res.status(201).json({
       status: 'success',
       message: 'API key created',
@@ -132,7 +132,7 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
       userId: req.user?.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to create API key',
@@ -169,17 +169,17 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
 router.post('/:id/revoke', authenticate, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    
+
     // Revoke API key
     const success = await ApiKeyService.revokeApiKey(id, req.user!.id);
-    
+
     if (!success) {
       return res.status(404).json({
         status: 'error',
         message: 'API key not found or not owned by user',
       });
     }
-    
+
     res.json({
       status: 'success',
       message: 'API key revoked',
@@ -191,7 +191,7 @@ router.post('/:id/revoke', authenticate, async (req: Request, res: Response) => 
       keyId: req.params.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to revoke API key',
@@ -228,17 +228,17 @@ router.post('/:id/revoke', authenticate, async (req: Request, res: Response) => 
 router.delete('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    
+
     // Delete API key
     const success = await ApiKeyService.deleteApiKey(id, req.user!.id);
-    
+
     if (!success) {
       return res.status(404).json({
         status: 'error',
         message: 'API key not found or not owned by user',
       });
     }
-    
+
     res.json({
       status: 'success',
       message: 'API key deleted',
@@ -250,7 +250,7 @@ router.delete('/:id', authenticate, async (req: Request, res: Response) => {
       keyId: req.params.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to delete API key',

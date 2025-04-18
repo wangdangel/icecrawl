@@ -4,7 +4,14 @@
  */
 
 import ApiService from '../services/api-service.js';
-import { truncateUrl, formatDate, getStatusClass, escapeHtml, buildCrawlTree, renderCrawlTree } from '../utils/helpers.js';
+import {
+  truncateUrl,
+  formatDate,
+  getStatusClass,
+  escapeHtml,
+  buildCrawlTree,
+  renderCrawlTree,
+} from '../utils/helpers.js';
 
 class CrawlController {
   constructor() {
@@ -13,12 +20,12 @@ class CrawlController {
       page: 1,
       limit: 10,
       total: 0,
-      status: ''
+      status: '',
     };
     this.elements = {};
     this.initialized = false;
   }
-  
+
   /**
    * Initialize crawl controller
    */
@@ -28,10 +35,10 @@ class CrawlController {
       this.bindEvents();
       this.initialized = true;
     }
-    
+
     await this.loadCrawlJobs();
   }
-  
+
   /**
    * Cache DOM elements
    */
@@ -43,10 +50,10 @@ class CrawlController {
       paginationCurrent: document.getElementById('crawl-jobs-pagination-current'),
       paginationShowing: document.getElementById('crawl-jobs-pagination-showing'),
       paginationTotal: document.getElementById('crawl-jobs-pagination-total'),
-      statusFilter: document.getElementById('crawl-status-filter')
+      statusFilter: document.getElementById('crawl-status-filter'),
     };
   }
-  
+
   /**
    * Bind event listeners
    */
@@ -59,7 +66,7 @@ class CrawlController {
         this.loadCrawlJobs();
       });
     }
-    
+
     // Pagination
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.addEventListener('click', () => {
@@ -69,7 +76,7 @@ class CrawlController {
         }
       });
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.addEventListener('click', () => {
         if (this.state.page < Math.ceil(this.state.total / this.state.limit)) {
@@ -79,7 +86,7 @@ class CrawlController {
       });
     }
   }
-  
+
   /**
    * Load crawl jobs data
    */
@@ -88,19 +95,19 @@ class CrawlController {
       const params = {
         page: this.state.page,
         limit: this.state.limit,
-        status: this.state.status
+        status: this.state.status,
       };
-      
+
       const result = await ApiService.crawlJobs.getCrawlJobs(params);
-      
+
       this.state.jobs = result.jobs || [];
       this.state.total = result.pagination.total || 0;
-      
+
       this.renderCrawlJobsTable();
       this.renderPagination();
     } catch (error) {
       console.error('Error loading crawl jobs:', error);
-      
+
       // Special handling for 404 (API not implemented yet)
       if (error.message.includes('404')) {
         if (this.elements.crawlJobsTable) {
@@ -113,7 +120,7 @@ class CrawlController {
         }
         return;
       }
-      
+
       if (this.elements.crawlJobsTable) {
         this.elements.crawlJobsTable.innerHTML = `
           <tr>
@@ -124,7 +131,7 @@ class CrawlController {
       }
     }
   }
-  
+
   /**
    * Render crawl jobs table
    */
@@ -133,9 +140,9 @@ class CrawlController {
       console.error('Crawl jobs table element not found');
       return;
     }
-    
+
     this.elements.crawlJobsTable.innerHTML = '';
-    
+
     if (this.state.jobs.length === 0) {
       this.elements.crawlJobsTable.innerHTML = `
         <tr>
@@ -145,11 +152,11 @@ class CrawlController {
         </tr>`;
       return;
     }
-    
+
     this.state.jobs.forEach(job => {
       const statusClass = getStatusClass(job.status);
       const isCancellable = job.status === 'pending' || job.status === 'in_progress';
-      
+
       this.elements.crawlJobsTable.innerHTML += `
         <tr>
           <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
@@ -182,21 +189,25 @@ class CrawlController {
           </td>
         </tr>`;
     });
-    
+
     // Add event listeners to action buttons
     this.elements.crawlJobsTable.querySelectorAll('[data-action="view-crawl"]').forEach(button => {
       button.addEventListener('click', e => this.handleCrawlJobView(e));
     });
-    
-    this.elements.crawlJobsTable.querySelectorAll('[data-action="delete-crawl-job"]').forEach(button => {
-      button.addEventListener('click', e => this.handleCrawlJobDelete(e));
-    });
-    
-    this.elements.crawlJobsTable.querySelectorAll('[data-action="cancel-crawl-job"]').forEach(button => {
-      button.addEventListener('click', e => this.handleCrawlJobCancel(e));
-    });
+
+    this.elements.crawlJobsTable
+      .querySelectorAll('[data-action="delete-crawl-job"]')
+      .forEach(button => {
+        button.addEventListener('click', e => this.handleCrawlJobDelete(e));
+      });
+
+    this.elements.crawlJobsTable
+      .querySelectorAll('[data-action="cancel-crawl-job"]')
+      .forEach(button => {
+        button.addEventListener('click', e => this.handleCrawlJobCancel(e));
+      });
   }
-  
+
   /**
    * Render pagination
    */
@@ -204,28 +215,28 @@ class CrawlController {
     const totalPages = Math.ceil(this.state.total / this.state.limit);
     const showingStart = this.state.total === 0 ? 0 : (this.state.page - 1) * this.state.limit + 1;
     const showingEnd = Math.min(this.state.page * this.state.limit, this.state.total);
-    
+
     if (this.elements.paginationShowing) {
       this.elements.paginationShowing.textContent = `${showingStart}-${showingEnd}`;
     }
-    
+
     if (this.elements.paginationTotal) {
       this.elements.paginationTotal.textContent = this.state.total;
     }
-    
+
     if (this.elements.paginationCurrent) {
       this.elements.paginationCurrent.textContent = this.state.page;
     }
-    
+
     if (this.elements.paginationPrev) {
       this.elements.paginationPrev.disabled = this.state.page <= 1;
     }
-    
+
     if (this.elements.paginationNext) {
       this.elements.paginationNext.disabled = this.state.page >= totalPages;
     }
   }
-  
+
   /**
    * Handle crawl job view
    * @param {Event} e - Click event
@@ -234,14 +245,14 @@ class CrawlController {
     const id = e.currentTarget.dataset.id;
     window.location.href = `/dashboard/crawl-details.html?id=${id}`;
   }
-  
+
   /**
    * Handle crawl job delete
    * @param {Event} e - Click event
    */
   async handleCrawlJobDelete(e) {
     const id = e.currentTarget.dataset.id;
-    
+
     if (confirm('Are you sure you want to delete this crawl job and its associated data?')) {
       try {
         await ApiService.crawlJobs.deleteCrawlJob(id);
@@ -252,7 +263,7 @@ class CrawlController {
       }
     }
   }
-  
+
   /**
    * Handle crawl job cancel
    * @param {Event} e - Click event
@@ -270,7 +281,7 @@ class CrawlController {
       }
     }
   }
-  
+
   /**
    * Show crawl details in a modal
    * @param {Object} details - Crawl job details
@@ -288,7 +299,7 @@ class CrawlController {
       <p><strong>End Time:</strong> ${details.endTime || 'N/A'}</p>
       <p><strong>Failed URLs:</strong> ${details.failedUrls && details.failedUrls.length ? details.failedUrls.join(', ') : 'None'}</p>
     `;
-    
+
     if (details.pages && details.pages.length > 0) {
       content += `<h3>Scraped Pages (${details.pages.length})</h3>`;
       content += `<ul style="max-height:300px;overflow:auto;">`;
@@ -304,14 +315,14 @@ class CrawlController {
     } else {
       content += `<p>No individual pages saved for this crawl.</p>`;
     }
-    
+
     // Basic crawl hierarchy visualization
     if (details.pages && details.pages.length > 0) {
       const tree = buildCrawlTree(details.pages, details.startUrl);
       content += `<h3>Crawl Hierarchy</h3>`;
       content += renderCrawlTree(tree);
     }
-    
+
     // Also show raw markdown if available
     if (details.mcpResult && details.mcpResult.markdownData) {
       content += `
@@ -331,7 +342,7 @@ class CrawlController {
 ${escapeHtml(typeof details.sitemap === 'string' ? details.sitemap : JSON.stringify(details.sitemap, null, 2))}
         </pre>`;
     }
-    
+
     const modalWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes');
     modalWindow.document.write(`
       <html>

@@ -2,10 +2,19 @@ import NodeCache from 'node-cache';
 import logger from '../utils/logger';
 
 // Configure cache with default TTL of 1 hour and check period of 10 minutes
-const cache = new NodeCache({
+const defaultCache = new NodeCache({
   stdTTL: 3600, // 1 hour in seconds
   checkperiod: 600, // 10 minutes in seconds
 });
+// Use default cache instance, but allow override for testing
+let cache: NodeCache = defaultCache;
+
+/**
+ * Override the cache instance (useful for testing)
+ */
+export function setCacheInstance(newCache: Partial<NodeCache>) {
+  cache = newCache as NodeCache;
+}
 
 /**
  * Cache service for storing and retrieving scraped data
@@ -13,7 +22,7 @@ const cache = new NodeCache({
 export class CacheService {
   /**
    * Get data from cache
-   * 
+   *
    * @param key - Cache key
    * @returns Cached data or undefined if not found/expired
    */
@@ -38,7 +47,7 @@ export class CacheService {
 
   /**
    * Store data in cache
-   * 
+   *
    * @param key - Cache key
    * @param value - Data to cache
    * @param ttl - Time to live in seconds (optional)
@@ -67,7 +76,7 @@ export class CacheService {
 
   /**
    * Remove data from cache
-   * 
+   *
    * @param key - Cache key
    * @returns Success or failure
    */
@@ -107,7 +116,7 @@ export class CacheService {
 
   /**
    * Get cache statistics
-   * 
+   *
    * @returns Cache statistics
    */
   static getStats(): NodeCache.Stats {

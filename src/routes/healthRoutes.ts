@@ -28,10 +28,10 @@ const router = Router();
  *                   example: 3600
  */
 router.get('/', (_req: Request, res: Response) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'healthy',
     version: process.env.npm_package_version || '0.1.0',
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 

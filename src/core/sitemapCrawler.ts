@@ -19,7 +19,12 @@ export class SitemapCrawler extends Crawler {
     this.urlToNode.set(job.startUrl, this.sitemapTree);
   }
 
-  protected override async processPage(url: string, depth: number, parentUrl: string | null, isRetry = false): Promise<void> {
+  protected override async processPage(
+    url: string,
+    depth: number,
+    parentUrl: string | null,
+    isRetry = false,
+  ): Promise<void> {
     if (this.visited.has(url)) return;
     this.visited.add(url);
 
@@ -55,20 +60,32 @@ export class SitemapCrawler extends Crawler {
         }
       }
     } catch (error) {
-      logger.error({ message: 'Failed to process page (sitemap mode)', url, jobId: this.job.id, error });
+      logger.error({
+        message: 'Failed to process page (sitemap mode)',
+        url,
+        jobId: this.job.id,
+        error,
+      });
       this.failedUrls.add(url);
     }
   }
 
   public override async run(): Promise<{ status: string; failedUrls: string[] }> {
-    logger.info({ message: 'Starting sitemap crawl job', jobId: this.job.id, startUrl: this.job.startUrl, options: this.options });
+    logger.info({
+      message: 'Starting sitemap crawl job',
+      jobId: this.job.id,
+      startUrl: this.job.startUrl,
+      options: this.options,
+    });
 
     await this.updateJobStatus('processing');
 
     while (this.queue.length > 0) {
       const batchSize = 5;
       const batch = this.queue.splice(0, batchSize);
-      const promises = batch.map(item => this.processPage(item.url, item.depth, item.parentUrl));
+      const promises = batch.map(item =>
+        this.processPage(item.url, item.depth, item.parentUrl ?? null),
+      );
       await Promise.all(promises);
       await this.updateJobStatus('processing');
     }

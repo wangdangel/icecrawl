@@ -35,16 +35,20 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
 // Conditional Authentication Middleware
-const authenticate = isTest ? (req: Request, res: Response, next: NextFunction) => next() : realAuthenticate;
+const authenticate = isTest
+  ? (req: Request, res: Response, next: NextFunction) => next()
+  : realAuthenticate;
 
 // Session configuration
 const SESSION_SECRET = process.env.SESSION_SECRET || 'webscraper-session-secret-dev-only';
 
 // Middleware
 app.use(cors());
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+);
 app.use(morgan('dev'));
 app.use(requestLogger);
 app.use(express.json());
@@ -53,62 +57,67 @@ app.use(express.urlencoded({ extended: true }));
 // app.use(defaultRateLimiter);
 
 // Session middleware
-app.use(session({
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: isProduction,
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  }
-}));
+app.use(
+  session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isProduction,
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }),
+);
 
 // Serve static files relative to the script's directory (__dirname)
 // This ensures it works correctly when run globally
 const publicPath = path.join(__dirname, '../public');
 // Serve static assets (CSS, JS, images) from the public directory
-app.use(express.static(publicPath)); 
+app.use(express.static(publicPath));
 
 // Explicitly serve dashboard index.html for /dashboard and /dashboard/ routes
 app.get('/dashboard(/)?', (req: Request, res: Response, next: NextFunction) => {
   const dashboardIndexPath = path.join(publicPath, 'dashboard', 'index.html');
-  
+
   // --- DIAGNOSTIC LOGGING ---
   logger.info(`Dashboard route hit. Trying to serve: ${dashboardIndexPath}`);
   try {
     const fileExists = require('fs').existsSync(dashboardIndexPath);
     logger.info(`Does dashboard index file exist at path? ${fileExists}`);
     if (!fileExists) {
-       logger.error(`Dashboard index.html NOT FOUND at calculated path: ${dashboardIndexPath}`);
-       // Optionally list directory contents for debugging
-       try {
-         const parentDirContents = require('fs').readdirSync(path.dirname(dashboardIndexPath));
-         logger.info(`Contents of ${path.dirname(dashboardIndexPath)}: ${parentDirContents.join(', ')}`);
-         const publicDirContents = require('fs').readdirSync(publicPath);
-         logger.info(`Contents of ${publicPath}: ${publicDirContents.join(', ')}`);
-       } catch (readErr: any) {
-         logger.warn(`Could not read directory contents for debugging: ${readErr.message}`);
-       }
+      logger.error(`Dashboard index.html NOT FOUND at calculated path: ${dashboardIndexPath}`);
+      // Optionally list directory contents for debugging
+      try {
+        const parentDirContents = require('fs').readdirSync(path.dirname(dashboardIndexPath));
+        logger.info(
+          `Contents of ${path.dirname(dashboardIndexPath)}: ${parentDirContents.join(', ')}`,
+        );
+        const publicDirContents = require('fs').readdirSync(publicPath);
+        logger.info(`Contents of ${publicPath}: ${publicDirContents.join(', ')}`);
+      } catch (readErr: any) {
+        logger.warn(`Could not read directory contents for debugging: ${readErr.message}`);
+      }
     }
   } catch (e: any) {
-      logger.error(`Error checking file existence: ${e.message}`);
+    logger.error(`Error checking file existence: ${e.message}`);
   }
   // --- END DIAGNOSTIC LOGGING ---
 
-  res.sendFile(dashboardIndexPath, (err) => {
+  res.sendFile(dashboardIndexPath, err => {
     if (err) {
       // If file not found or other error, pass to next error handler
       // Log error was already added, keep it
-      logger.error(`Error sending dashboard index.html: ${err.message}`); 
+      logger.error(`Error sending dashboard index.html: ${err.message}`);
       // Ensure 404 is sent if file specifically not found, otherwise let default error handler run
-      if (err.message.includes('ENOENT')) { // ENOENT: Error NO ENTry (file not found)
-         res.status(404).send('Dashboard file not found.');
+      if (err.message.includes('ENOENT')) {
+        // ENOENT: Error NO ENTry (file not found)
+        res.status(404).send('Dashboard file not found.');
       } else {
-         next(err); 
+        next(err);
       }
     } else {
-       logger.info(`Successfully sent: ${dashboardIndexPath}`);
+      logger.info(`Successfully sent: ${dashboardIndexPath}`);
     }
   });
 });
@@ -122,7 +131,7 @@ const errorHandler = (err: Error, req: Request, res: Response, _next: NextFuncti
     path: req.path,
     method: req.method,
   });
-  
+
   res.status(500).json({
     status: 'error',
     message: err.message || 'An unexpected error occurred',
@@ -135,7 +144,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // Serve login page directly using the calculated public path
 app.get('/login', (req: Request, res: Response, next: NextFunction) => {
   const loginPath = path.join(publicPath, 'login.html');
-   res.sendFile(loginPath, (err) => {
+  res.sendFile(loginPath, err => {
     if (err) {
       logger.error(`Error sending login.html: ${err.message}`);
       next(err);
@@ -174,9 +183,9 @@ export function startDashboardServer() {
     logger.info(`Web Scraper server running at http://localhost:${PORT}`);
     logger.info(`Dashboard UI available at http://localhost:${PORT}/dashboard`);
     logger.info(`API documentation available at http://localhost:${PORT}/api-docs`);
-    
+
     // Start the background worker after the server starts
-    startWorker(); 
+    startWorker();
   });
 }
 

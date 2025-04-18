@@ -22,7 +22,7 @@ export const jsonExporter: Exporter = {
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as JSON');
     return JSON.stringify(data, null, 2);
-  }
+  },
 };
 
 /**
@@ -33,15 +33,15 @@ export const csvExporter: Exporter = {
   contentType: 'text/csv',
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as CSV');
-    
+
     // Flatten the data structure using the interface
     const flatData: FlatCsvData = {
       url: data.url,
       title: data.title,
       content: data.content.replace(/\n/g, ' ').replace(/"/g, '""'), // Keep existing replacements
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     };
-    
+
     // Add metadata fields
     if (typeof data.metadata === 'object') {
       Object.entries(data.metadata).forEach(([key, value]) => {
@@ -52,15 +52,15 @@ export const csvExporter: Exporter = {
         }
       });
     }
-    
+
     // Create CSV
     const header = Object.keys(flatData).map(key => ({ id: key, title: key }));
     const csvStringifier = createObjectCsvStringifier({
-      header
+      header,
     });
-    
+
     return csvStringifier.getHeaderString() + csvStringifier.stringifyRecords([flatData]);
-  }
+  },
 };
 
 /**
@@ -71,18 +71,19 @@ export const xmlExporter: Exporter = {
   contentType: 'application/xml',
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as XML');
-    
+
     // Create XML structure
-    const xmlObj: any = { // Use any for easier dynamic property assignment
+    const xmlObj: any = {
+      // Use any for easier dynamic property assignment
       scrapedData: {
         url: data.url,
         title: data.title,
         content: { _cdata: data.content },
         timestamp: data.timestamp,
-        metadata: {} // Initialize metadata object
-      }
+        metadata: {}, // Initialize metadata object
+      },
     };
-    
+
     // Add metadata (casting metadata to any is implicitly handled by xmlObj being any)
     if (typeof data.metadata === 'object' && data.metadata !== null) {
       Object.entries(data.metadata).forEach(([key, value]) => {
@@ -93,15 +94,15 @@ export const xmlExporter: Exporter = {
         }
       });
     }
-    
+
     // Convert to XML string
     const builder = new xml2js.Builder({
       cdata: true,
-      xmldec: { version: '1.0', encoding: 'UTF-8' }
+      xmldec: { version: '1.0', encoding: 'UTF-8' },
     });
-    
+
     return builder.buildObject(xmlObj);
-  }
+  },
 };
 
 /**
@@ -112,7 +113,7 @@ export const htmlExporter: Exporter = {
   contentType: 'text/html',
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as HTML');
-    
+
     // Create a simple HTML document
     return `<!DOCTYPE html>
 <html>
@@ -150,7 +151,7 @@ export const htmlExporter: Exporter = {
   </div>
 </body>
 </html>`;
-  }
+  },
 };
 
 /**
@@ -161,7 +162,7 @@ export const textExporter: Exporter = {
   contentType: 'text/plain',
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as plain text');
-    
+
     return `TITLE: ${data.title}
 URL: ${data.url}
 TIMESTAMP: ${data.timestamp}
@@ -171,7 +172,7 @@ ${formatMetadataAsText(data.metadata)}
 
 CONTENT:
 ${data.content}`;
-  }
+  },
 };
 
 /**
@@ -182,7 +183,7 @@ export const markdownExporter: Exporter = {
   contentType: 'text/markdown',
   export: async (data: ScrapedData): Promise<string> => {
     logger.debug('Exporting data as Markdown');
-    
+
     return `# ${data.title}
 
 > Source: [${data.url}](${data.url})  
@@ -196,7 +197,7 @@ ${formatMetadataAsMarkdown(data.metadata)}
 
 ${data.content.replace(/\n/g, '\n\n')}
 `;
-  }
+  },
 };
 
 // Helper functions
@@ -211,12 +212,13 @@ function escapeHtml(text: string): string {
 
 function formatMetadataAsHtml(metadata: any): string {
   if (!metadata || typeof metadata !== 'object') return '';
-  
+
   return Object.entries(metadata)
     .map(([key, value]) => {
-      const formattedValue = typeof value === 'object' 
-        ? `<pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>` 
-        : escapeHtml(String(value));
+      const formattedValue =
+        typeof value === 'object'
+          ? `<pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>`
+          : escapeHtml(String(value));
       return `<li><strong>${escapeHtml(key)}:</strong> ${formattedValue}</li>`;
     })
     .join('\n');
@@ -228,12 +230,11 @@ function formatContentAsHtml(content: string): string {
 
 function formatMetadataAsText(metadata: any): string {
   if (!metadata || typeof metadata !== 'object') return '';
-  
+
   return Object.entries(metadata)
     .map(([key, value]) => {
-      const formattedValue = typeof value === 'object' 
-        ? JSON.stringify(value, null, 2) 
-        : String(value);
+      const formattedValue =
+        typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
       return `${key}: ${formattedValue}`;
     })
     .join('\n');
@@ -241,12 +242,13 @@ function formatMetadataAsText(metadata: any): string {
 
 function formatMetadataAsMarkdown(metadata: any): string {
   if (!metadata || typeof metadata !== 'object') return '';
-  
+
   return Object.entries(metadata)
     .map(([key, value]) => {
-      const formattedValue = typeof value === 'object' 
-        ? `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`` 
-        : String(value);
+      const formattedValue =
+        typeof value === 'object'
+          ? `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``
+          : String(value);
       return `- **${key}**: ${formattedValue}`;
     })
     .join('\n');

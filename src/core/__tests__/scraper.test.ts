@@ -12,17 +12,17 @@ jest.mock('../../db/prismaClient', () => {
   const mockUpsert = jest.fn().mockResolvedValue({});
   return {
     __esModule: true, // This is important for ES modules
-    default: { // Mock the default export
+    default: {
+      // Mock the default export
       scrapedPage: {
         upsert: mockUpsert,
       },
       // Add mocks for other models/methods if needed by scraper.ts
     },
     // Export the mock function itself if needed for resetting in tests
-    _mockUpsert: mockUpsert
+    _mockUpsert: mockUpsert,
   }; // Corrected: Removed extra comma and brace/semicolon
 });
-
 
 describe('Scraper', () => {
   // Import the mock function for resetting if needed (optional)
@@ -48,18 +48,18 @@ describe('Scraper', () => {
       </body>
     </html>
   `;
-  
+
   beforeEach(() => {
     // Reset all mocks
     jest.resetAllMocks();
-    
+
     // Mock HTTP client
     (httpClient.get as jest.Mock).mockResolvedValue({
       data: sampleHtml,
       status: 200,
       headers: {},
     });
-    
+
     // Mock cache service - Explicitly assign jest.fn()
     CacheService.get = jest.fn().mockReturnValue(undefined);
     CacheService.set = jest.fn().mockReturnValue(true);
@@ -73,9 +73,9 @@ describe('Scraper', () => {
 
   test('should scrape a URL successfully', async () => {
     const url = 'https://test.com';
-    
+
     const result = await scrapeUrl(url, { useCache: false });
-    
+
     // Verify the result structure
     expect(result).toBeDefined();
     expect(result.url).toBe(url);
@@ -85,11 +85,11 @@ describe('Scraper', () => {
     expect(result.metadata).toBeDefined();
     expect(result.metadata.description).toBe('Test description');
     expect(result.metadata.og_title).toBe('Test OG Title');
-    
+
     // Verify HTTP client was called
     expect(httpClient.get).toHaveBeenCalledWith(url);
   });
-  
+
   test('should use cache when available', async () => {
     const url = 'https://test.com';
     const cachedData: ScrapedData = {
@@ -99,25 +99,25 @@ describe('Scraper', () => {
       metadata: {},
       timestamp: new Date().toISOString(),
     };
-    
+
     // Set up cache hit - Explicitly assign jest.fn()
     CacheService.get = jest.fn().mockReturnValue(cachedData);
-    
+
     const result = await scrapeUrl(url, { useCache: true });
-    
+
     // Verify we got the cached data
     expect(result).toEqual(cachedData);
-    
+
     // Verify HTTP client was NOT called
     expect(httpClient.get).not.toHaveBeenCalled();
   });
-  
+
   test('should handle HTTP errors', async () => {
     const url = 'https://test.com';
-    
+
     // Set up HTTP error
     (httpClient.get as jest.Mock).mockRejectedValue(new Error('Network error'));
-    
+
     await expect(scrapeUrl(url)).rejects.toThrow('Failed to scrape URL');
   });
 });
