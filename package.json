@@ -1,6 +1,6 @@
 {
   "name": "icecrawl",
-  "version": "0.3.23",
+  "version": "0.4.0",
   "description": "Web scraping application with HTTP API (incl. Dashboard), CLI, and MCP Server interfaces.",
   "main": "dist/index.js",
   "bin": {
@@ -115,6 +115,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.30",
+    "@types/node-fetch": "2.6.12",
     "@types/nodemailer": "^6.4.14",
     "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "6.0.4",
