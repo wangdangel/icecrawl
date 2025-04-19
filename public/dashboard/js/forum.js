@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
       <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Output</th>
       <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Database File</th>
-      <th class="px-4 py-2"></th>
+      <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
     </tr></thead><tbody>`;
     try {
       const jobs = await fetch('/api/forum/jobs', {
